@@ -1,25 +1,58 @@
 # Product Cart App 🛒
 
-A modern, high-performance Flutter e-commerce application built with **Clean Architecture** (Data, Domain, Presentation) and **BLoC (Business Logic Component)** state management. The app consumes REST APIs using **Dio**, manages dependency injection seamlessly with **GetIt** & **Injectable**, and offers a responsive UI with **Google Fonts**.
+A modern, high-performance Flutter e-commerce application built with **Clean Architecture** (Data, Domain, Presentation) and **BLoC (Business Logic Component)** state management. The app supports both **Live REST API** integration and **Mock Data Sources**, managed seamlessly via **Injectable** and **GetIt**.
 
 ---
 
 ## 🌟 Key Features
 
-- 📱 **Product Catalog Listing**: Browse available products with images, title, category, stock info, and formatted pricing.
-- 🔄 **Pull-to-Refresh & Live Synchronization**: Fetch updated product listings and sync price changes across the cart and catalog dynamically.
+- 📱 **Product Catalog Listing**: Browse available products with network images, titles, descriptions, stock status, and formatted pricing.
+- 🔄 **Pull-to-Refresh & Live Synchronization**: Fetch updated product listings and sync price changes across the cart and catalog dynamically upon pull-to-refresh.
 - 🛒 **Cart Management**:
   - Add / remove products to and from cart.
   - Adjust product quantities (+ / -).
   - Synchronized cart item count badge and real-time total price calculation.
-- ⚡ **Clean Architecture & Decoupled Codebase**: Strict separation between Data, Domain, and Presentation layers for testability and maintainability.
+- 🧪 **Dual Environment Setup (Mock & Live API)**: Easily switch between a live backend endpoint and an offline mock data source with pre-configured test scenarios.
+- ⚡ **Clean Architecture & Decoupled Codebase**: Strict separation between Data, Domain, and Presentation layers for high testability and maintainability.
 - 🎨 **Modern Aesthetics**: Built with Material 3 components and custom typography via `google_fonts`.
+
+---
+
+## 🌐 API Data Sources & Testing Environments
+
+The application uses **Injectable** environment annotations (`@Environment`) to decouple the network layer, allowing testers to run the app against a **Live REST API** or an offline **Mock API**.
+
+| Environment Key | Class | Endpoint / Source | Description |
+| :--- | :--- | :--- | :--- |
+| `Environment.dev` / `Environment.prod` | `ProductRemoteDataSourceImpl` | `https://d998-203-192-225-119.ngrok-free.app/products` | Connects to the live backend server via `Dio` client. |
+| `'mock'` | `MockProductRemoteDataSourceImpl` | Local Memory / Simulated Delay | Offline mock data source with built-in scenarios for testing edge cases. |
+
+### 🧪 Pre-configured Mock Test Scenarios
+
+When running under the `'mock'` environment, the data source supports scenario flags to test various UI & BLoC behaviors:
+
+- **`normal` (Default)**: Returns a standard set of products (Headphones, Smartwatch, Keyboard, Speaker).
+- **`updated`**: Simulates a backend price change (e.g. Wireless Headphones drop from **$199.99** to **$179.99**). Ideal for testing **Pull-to-Refresh Cart Price Synchronization**.
+- **`error`**: Simulates a network failure (`Mock API Error`) to test the **Error View** and **Retry button**.
+- **`empty`**: Returns an empty product array to test the **Empty State View**.
+
+### 🛠️ How Testers Can Switch Environments
+
+Open [`lib/main.dart`](file:///Users/durgeshsawant/.gemini/antigravity-ide/scratch/product_cart_app/lib/main.dart) and update `configureDependencies()`:
+
+```dart
+// For Live API (default dev endpoint):
+configureDependencies(environment: Environment.dev);
+
+// For Offline Mock API testing:
+configureDependencies(environment: 'mock');
+```
 
 ---
 
 ## 🏗️ Architecture & Design Pattern
 
-The application strictly adheres to **Clean Architecture** principles without unneeded boilerplate:
+The application strictly adheres to **Clean Architecture** principles:
 
 ```
 lib/
@@ -30,7 +63,7 @@ lib/
 │
 └── features/                    # Feature modules
     ├── products/                # Product Listing Feature
-    │   ├── data/                # Data sources & repository implementations
+    │   ├── data/                # Data sources (Mock & Live) & repository implementations
     │   ├── domain/              # Entities & Repository interfaces
     │   └── presentation/        # BLoC, screens & widget components
     │
@@ -43,8 +76,8 @@ lib/
 ### Architectural Layers
 
 1. **Presentation Layer**: Flutter UI Widgets + **BLoC / Cubit** for predictable unidirectional data flow.
-2. **Domain Layer**: Core Business Logic, Entities, and Repository Interfaces (`i_product_repository.dart`, `i_cart_repository.dart`). Completely framework-agnostic.
-3. **Data Layer**: API Remote Data Sources (`Dio`), Data Models, and Repository Implementations (`product_repository_impl.dart`).
+2. **Domain Layer**: Core Business Logic, Entities, and Repository Interfaces (`i_product_repository.dart`). Completely framework-agnostic.
+3. **Data Layer**: Remote Data Sources (`MockProductRemoteDataSourceImpl` & `ProductRemoteDataSourceImpl`), Data Models (`ProductDto`), and Repository Implementations (`ProductRepositoryImpl`).
 
 ---
 
@@ -73,7 +106,7 @@ Ensure you have the following installed on your machine:
 
 1. **Clone the repository**:
    ```bash
-   git clone https://github.com/djsawant96/product_cart_app.git
+   git clone https://github.com/durgeshgit20/product_cart_app.git
    cd product_cart_app
    ```
 
@@ -96,7 +129,7 @@ Ensure you have the following installed on your machine:
 
 ## 🧪 Testing
 
-Run Flutter unit and widget tests with:
+Run Flutter unit and widget tests:
 ```bash
 flutter test
 ```
