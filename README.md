@@ -2,6 +2,9 @@
 
 A modern, high-performance Flutter e-commerce application built with **Clean Architecture** (Data, Domain, Presentation) and **BLoC (Business Logic Component)** state management. The app supports both **Live REST API** integration and **Mock Data Sources**, managed dynamically in the app UI.
 
+**Author**: **Durgesh J. Sawant**  
+**Repository**: [https://github.com/durgeshgit20/product_cart_app](https://github.com/durgeshgit20/product_cart_app)
+
 ---
 
 ## 🌟 Key Features
@@ -121,6 +124,14 @@ Run Flutter unit and widget tests:
 ```bash
 flutter test
 ```
+
+---
+
+## 👤 Author
+
+**Durgesh J. Sawant**  
+- GitHub: [@durgeshgit20](https://github.com/durgeshgit20)  
+- Email: [djsawant96@gmail.com](mailto:djsawant96@gmail.com)
 
 ---
 
