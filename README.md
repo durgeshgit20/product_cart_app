@@ -1,6 +1,6 @@
 # Product Cart App 🛒
 
-A modern, high-performance Flutter e-commerce application built with **Clean Architecture** (Data, Domain, Presentation) and **BLoC (Business Logic Component)** state management. The app supports both **Live REST API** integration and **Mock Data Sources**, managed seamlessly via **Injectable** and **GetIt**.
+A modern, high-performance Flutter e-commerce application built with **Clean Architecture** (Data, Domain, Presentation) and **BLoC (Business Logic Component)** state management. The app supports both **Live REST API** integration and **Mock Data Sources**, managed dynamically in the app UI.
 
 ---
 
@@ -12,7 +12,7 @@ A modern, high-performance Flutter e-commerce application built with **Clean Arc
   - Add / remove products to and from cart.
   - Adjust product quantities (+ / -).
   - Synchronized cart item count badge and real-time total price calculation.
-- 🧪 **Dual Environment Setup (Mock & Live API)**: Easily switch between a live backend endpoint and an offline mock data source with pre-configured test scenarios.
+- 🎛️ **In-App Environment & Scenario Switcher**: Testers can switch between **LIVE API** and **MOCK API**, as well as simulate network edge cases directly in the app UI **without changing any code**!
 - ⚡ **Clean Architecture & Decoupled Codebase**: Strict separation between Data, Domain, and Presentation layers for high testability and maintainability.
 - 🎨 **Modern Aesthetics**: Built with Material 3 components and custom typography via `google_fonts`.
 
@@ -20,33 +20,21 @@ A modern, high-performance Flutter e-commerce application built with **Clean Arc
 
 ## 🌐 API Data Sources & Testing Environments
 
-The application uses **Injectable** environment annotations (`@Environment`) to decouple the network layer, allowing testers to run the app against a **Live REST API** or an offline **Mock API**.
+The app features an interactive **in-app environment switcher** directly on the Product Listing Screen. Testers do **not need to touch or modify any code** to test different APIs or edge-case scenarios.
 
-| Environment Key | Class | Endpoint / Source | Description |
-| :--- | :--- | :--- | :--- |
-| `Environment.dev` / `Environment.prod` | `ProductRemoteDataSourceImpl` | `https://d998-203-192-225-119.ngrok-free.app/products` | Connects to the live backend server via `Dio` client. |
-| `'mock'` | `MockProductRemoteDataSourceImpl` | Local Memory / Simulated Delay | Offline mock data source with built-in scenarios for testing edge cases. |
+### 🎛️ How Testers Switch Environments & Scenarios in the App
 
-### 🧪 Pre-configured Mock Test Scenarios
+1. **Repository Mode Switch (AppBar)**:
+   - **LIVE Mode**: Connects directly to the live backend server (`ProductRemoteDataSourceImpl`).
+   - **MOCK Mode**: Uses local mock data (`MockProductRemoteDataSourceImpl`).
+   - *Toggling the switch dynamically resets dependency injection (`GetIt`) and updates all active BLoCs instantly!*
 
-When running under the `'mock'` environment, the data source supports scenario flags to test various UI & BLoC behaviors:
-
-- **`normal` (Default)**: Returns a standard set of products (Headphones, Smartwatch, Keyboard, Speaker).
-- **`updated`**: Simulates a backend price change (e.g. Wireless Headphones drop from **$199.99** to **$179.99**). Ideal for testing **Pull-to-Refresh Cart Price Synchronization**.
-- **`error`**: Simulates a network failure (`Mock API Error`) to test the **Error View** and **Retry button**.
-- **`empty`**: Returns an empty product array to test the **Empty State View**.
-
-### 🛠️ How Testers Can Switch Environments
-
-Open [`lib/main.dart`](file:///Users/durgeshsawant/.gemini/antigravity-ide/scratch/product_cart_app/lib/main.dart) and update `configureDependencies()`:
-
-```dart
-// For Live API (default dev endpoint):
-configureDependencies(environment: Environment.dev);
-
-// For Offline Mock API testing:
-configureDependencies(environment: 'mock');
-```
+2. **Scenario Selector (`Icons.bug_report` Icon in AppBar)**:
+   - Testers can tap the bug icon in the top AppBar to choose test scenarios:
+     - **Normal (Default)**: Standard catalog loading.
+     - **Updated Prices (`updated`)**: Simulates backend price changes (e.g. Headphones drop from **$199.99** to **$179.99**). Tests pull-to-refresh cart price synchronization.
+     - **Error State (`error`)**: Simulates API failures to test the **Error View** and **Retry button**.
+     - **Empty State (`empty`)**: Simulates empty product listings to test the **Empty State View**.
 
 ---
 
