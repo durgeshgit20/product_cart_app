@@ -507,4 +507,219 @@ void main() {
       },
     );
   });
+
+  group('catalog updates', () {
+    final cheaperHeadphones = headphones.copyWith(
+      name: 'Headphones Pro',
+      price: 179.99,
+      imageUrl: 'https://example.com/1b.png',
+      stockQuantity: 2,
+    );
+    final refreshedHeadphones = WishlistEntry(
+      product: cheaperHeadphones,
+      wishlistedPrice: 199.99,
+      wishlistedAt: DateTime(2026, 10, 1),
+    );
+
+    blocTest<WishlistBloc, WishlistState>(
+      'refresh and save the details of Wishlisted Products in the catalog, '
+      'keeping the baseline',
+      setUp: () => repository = FakeWishlistRepository([savedHeadphones]),
+      build: () => WishlistBloc(
+        wishlistRepository: repository,
+        productRepository: products,
+      ),
+      act: (bloc) async {
+        await bloc.stream.first;
+        products.publish([cheaperHeadphones, soldOutWatch]);
+      },
+      verify: (bloc) {
+        expect((bloc.state as WishlistLoaded).entries, [refreshedHeadphones]);
+        expect(repository.saved, [refreshedHeadphones]);
+      },
+    );
+  });
+
+  group('Price Drop', () {
+    WishlistEntry onlyEntry(WishlistBloc bloc) =>
+        (bloc.state as WishlistLoaded).entries.single;
+
+    Future<void> publishAfterLoad(WishlistBloc bloc, double price) async {
+      await bloc.stream.first;
+      products.publish([headphones.copyWith(price: price)]);
+      // An unchanged price emits no new state, so let the update run out.
+      await Future<void>.delayed(Duration.zero);
+    }
+
+    blocTest<WishlistBloc, WishlistState>(
+      'is shown when the price falls below the price when Wishlisted',
+      setUp: () => repository = FakeWishlistRepository([savedHeadphones]),
+      build: () => WishlistBloc(
+        wishlistRepository: repository,
+        productRepository: products,
+      ),
+      act: (bloc) => publishAfterLoad(bloc, 179.99),
+      verify: (bloc) => expect(onlyEntry(bloc).hasPriceDrop, isTrue),
+    );
+
+    for (final (label, price) in [('the same', 199.99), ('higher', 219.99)]) {
+      blocTest<WishlistBloc, WishlistState>(
+        'is not shown when the price is $label',
+        setUp: () => repository = FakeWishlistRepository([savedHeadphones]),
+        build: () => WishlistBloc(
+          wishlistRepository: repository,
+          productRepository: products,
+        ),
+        act: (bloc) => publishAfterLoad(bloc, price),
+        verify: (bloc) => expect(onlyEntry(bloc).hasPriceDrop, isFalse),
+      );
+    }
+
+    blocTest<WishlistBloc, WishlistState>(
+      'starts over when the Product is removed and Wishlisted again',
+      setUp: () => repository = FakeWishlistRepository([savedHeadphones]),
+      build: () => WishlistBloc(
+        wishlistRepository: repository,
+        productRepository: products,
+      ),
+      act: (bloc) async {
+        await publishAfterLoad(bloc, 179.99);
+        final cheaper = onlyEntry(bloc).product;
+        bloc
+          ..add(WishlistToggled(cheaper))
+          ..add(WishlistToggled(cheaper));
+      },
+      verify: (bloc) {
+        expect(onlyEntry(bloc).wishlistedPrice, 179.99);
+        expect(onlyEntry(bloc).hasPriceDrop, isFalse);
+      },
+    );
+  });
+
+  group('Out of Stock', () {
+    WishlistLoaded loaded(WishlistBloc bloc) => bloc.state as WishlistLoaded;
+
+    blocTest<WishlistBloc, WishlistState>(
+      'follows the latest known details',
+      setUp: () => repository = FakeWishlistRepository([savedHeadphones]),
+      build: () => WishlistBloc(
+        wishlistRepository: repository,
+        productRepository: products,
+      ),
+      act: (bloc) async {
+        await bloc.stream.first;
+        expect(loaded(bloc).entries.single.isOutOfStock, isFalse);
+        products.publish([
+          headphones.copyWith(stockQuantity: 0, isOutOfStock: true),
+        ]);
+        await bloc.stream.first;
+      },
+      verify: (bloc) =>
+          expect(loaded(bloc).entries.single.isOutOfStock, isTrue),
+    );
+  });
+
+  group('No Longer Available', () {
+    WishlistLoaded loaded(WishlistBloc bloc) => bloc.state as WishlistLoaded;
+
+    final savedWatch = WishlistEntry(
+      product: soldOutWatch,
+      wishlistedPrice: 99.0,
+      wishlistedAt: DateTime(2026, 10, 3),
+    );
+
+    Future<void> publishAfterLoad(
+      WishlistBloc bloc,
+      List<Product> catalog,
+    ) async {
+      await bloc.stream.first;
+      products.publish(catalog);
+      await bloc.stream.first;
+    }
+
+    blocTest<WishlistBloc, WishlistState>(
+      'marks a Product missing from the latest catalog, keeping its entry '
+      'and last-known details',
+      setUp: () =>
+          repository = FakeWishlistRepository([savedWatch, savedHeadphones]),
+      build: () => WishlistBloc(
+        wishlistRepository: repository,
+        productRepository: products,
+      ),
+      act: (bloc) => publishAfterLoad(bloc, [soldOutWatch]),
+      verify: (bloc) {
+        expect(loaded(bloc).entries, [savedWatch, savedHeadphones]);
+        expect(loaded(bloc).isNoLongerAvailable('mock-1'), isTrue);
+        expect(loaded(bloc).isNoLongerAvailable('mock-3'), isFalse);
+        expect(repository.saved, [savedWatch, savedHeadphones]);
+      },
+    );
+
+    blocTest<WishlistBloc, WishlistState>(
+      'is cleared when the Product comes back to the catalog',
+      setUp: () => repository = FakeWishlistRepository([savedHeadphones]),
+      build: () => WishlistBloc(
+        wishlistRepository: repository,
+        productRepository: products,
+      ),
+      act: (bloc) async {
+        await publishAfterLoad(bloc, []);
+        expect(loaded(bloc).isNoLongerAvailable('mock-1'), isTrue);
+        products.publish([headphones]);
+        await bloc.stream.first;
+      },
+      verify: (bloc) {
+        expect(loaded(bloc).entries, [savedHeadphones]);
+        expect(loaded(bloc).isNoLongerAvailable('mock-1'), isFalse);
+      },
+    );
+
+    blocTest<WishlistBloc, WishlistState>(
+      'marks every entry when the catalog is empty',
+      setUp: () =>
+          repository = FakeWishlistRepository([savedWatch, savedHeadphones]),
+      build: () => WishlistBloc(
+        wishlistRepository: repository,
+        productRepository: products,
+      ),
+      act: (bloc) => publishAfterLoad(bloc, []),
+      verify: (bloc) {
+        expect(loaded(bloc).entries, [savedWatch, savedHeadphones]);
+        expect(loaded(bloc).isNoLongerAvailable('mock-1'), isTrue);
+        expect(loaded(bloc).isNoLongerAvailable('mock-3'), isTrue);
+      },
+    );
+
+    blocTest<WishlistBloc, WishlistState>(
+      'marks nothing before the first catalog arrives',
+      setUp: () => repository = FakeWishlistRepository([savedHeadphones]),
+      build: () => WishlistBloc(
+        wishlistRepository: repository,
+        productRepository: products,
+      ),
+      verify: (bloc) =>
+          expect(loaded(bloc).isNoLongerAvailable('mock-1'), isFalse),
+    );
+
+    blocTest<WishlistBloc, WishlistState>(
+      'marks nothing once the Data Source is switched, until the new '
+      "catalog arrives",
+      setUp: () => repository = FakeWishlistRepository([savedHeadphones]),
+      build: () => WishlistBloc(
+        wishlistRepository: repository,
+        productRepository: products,
+      ),
+      act: (bloc) async {
+        await publishAfterLoad(bloc, []);
+        bloc.add(
+          WishlistRepositoriesSwitched(
+            wishlistRepository: FakeWishlistRepository([savedHeadphones]),
+            productRepository: FakeProductRepository(),
+          ),
+        );
+      },
+      verify: (bloc) =>
+          expect(loaded(bloc).isNoLongerAvailable('mock-1'), isFalse),
+    );
+  });
 }
