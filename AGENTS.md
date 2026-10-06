@@ -11,3 +11,9 @@ Default labels: `needs-triage`, `needs-info`, `ready-for-agent`, `ready-for-huma
 ### Domain docs
 
 Single-context: one `GLOSSARY.md` and `docs/adr/` at the repo root. See `docs/agents/domain.md`.
+
+## Coding standards
+
+All Flutter code follows the `flutter-expert` skill at `.agents/skills/flutter-expert/`. Read `SKILL.md` first, then the sub-files for the task at hand: `state.md` (BLoC, DI), `async.md` (async, dispose, persistence, testing), `widgets.md` and `performance.md` (UI). They cover the architecture (clean architecture, repository pattern), design patterns and coding standards.
+
+Skip the parts that don't apply to this app: GoRouter (this app uses `Navigator`), CI/CD and push notifications, and asking for `curl`/Figma (the spec and tickets are the source of truth). Where a spec or ticket makes a decision, the spec wins.
