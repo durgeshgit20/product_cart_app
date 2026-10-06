@@ -21,6 +21,9 @@ class WishlistEntry extends Equatable {
 
   String get productId => product.id;
 
+  /// Price Drop: the current price is strictly lower than the baseline.
+  bool get hasPriceDrop => product.price < wishlistedPrice;
+
   /// This entry with the latest known [product] details. The baseline and
   /// the Wishlisted time stay as they were.
   WishlistEntry withDetails(Product product) => WishlistEntry(

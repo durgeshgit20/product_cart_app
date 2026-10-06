@@ -426,4 +426,60 @@ void main() {
       },
     );
   });
+
+  group('Price Drop', () {
+    WishlistEntry onlyEntry(WishlistBloc bloc) =>
+        (bloc.state as WishlistLoaded).entries.single;
+
+    Future<void> publishAfterLoad(WishlistBloc bloc, double price) async {
+      await bloc.stream.first;
+      catalog.publish([headphones.copyWith(price: price)]);
+      // An unchanged price emits no new state, so let the update run out.
+      await Future<void>.delayed(Duration.zero);
+    }
+
+    blocTest<WishlistBloc, WishlistState>(
+      'is shown when the price falls below the price when Wishlisted',
+      setUp: () => repository = FakeWishlistRepository([savedHeadphones]),
+      build: () => WishlistBloc(
+        wishlistRepository: repository,
+        productRepository: catalog,
+      ),
+      act: (bloc) => publishAfterLoad(bloc, 179.99),
+      verify: (bloc) => expect(onlyEntry(bloc).hasPriceDrop, isTrue),
+    );
+
+    for (final (label, price) in [('the same', 199.99), ('higher', 219.99)]) {
+      blocTest<WishlistBloc, WishlistState>(
+        'is not shown when the price is $label',
+        setUp: () => repository = FakeWishlistRepository([savedHeadphones]),
+        build: () => WishlistBloc(
+          wishlistRepository: repository,
+          productRepository: catalog,
+        ),
+        act: (bloc) => publishAfterLoad(bloc, price),
+        verify: (bloc) => expect(onlyEntry(bloc).hasPriceDrop, isFalse),
+      );
+    }
+
+    blocTest<WishlistBloc, WishlistState>(
+      'starts over when the Product is removed and Wishlisted again',
+      setUp: () => repository = FakeWishlistRepository([savedHeadphones]),
+      build: () => WishlistBloc(
+        wishlistRepository: repository,
+        productRepository: catalog,
+      ),
+      act: (bloc) async {
+        await publishAfterLoad(bloc, 179.99);
+        final cheaper = onlyEntry(bloc).product;
+        bloc
+          ..add(WishlistToggled(cheaper))
+          ..add(WishlistToggled(cheaper));
+      },
+      verify: (bloc) {
+        expect(onlyEntry(bloc).wishlistedPrice, 179.99);
+        expect(onlyEntry(bloc).hasPriceDrop, isFalse);
+      },
+    );
+  });
 }
