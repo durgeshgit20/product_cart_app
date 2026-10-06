@@ -1,7 +1,6 @@
 import 'dart:convert';
 
 import 'package:fpdart/fpdart.dart';
-import 'package:injectable/injectable.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../../../core/error/failure.dart';
@@ -11,33 +10,32 @@ import '../models/wishlist_entry_dto.dart';
 
 /// Keeps the Wishlist on the device as a JSON list under one
 /// `shared_preferences` key.
-@LazySingleton(as: IWishlistRepository)
+///
+/// Each Data Source gets its own instance with its own [storageKey] (see
+/// `WishlistStorageModule`), so each Data Source has its own Wishlist.
 class SharedPreferencesWishlistRepository implements IWishlistRepository {
-  static const String storageKey = 'wishlist_entries';
+  final String storageKey;
+
+  const SharedPreferencesWishlistRepository({required this.storageKey});
 
   @override
-  EitherResponse<List<WishlistEntry>> loadEntries() => TaskEither.tryCatch(
-    () async {
-      final prefs = await SharedPreferences.getInstance();
-      return _decode(prefs.get(storageKey));
-    },
-    (error, _) => StorageFailure('Could not load the Wishlist: $error'),
-  );
+  EitherResponse<List<WishlistEntry>> loadEntries() =>
+      TaskEither.tryCatch(() async {
+        final prefs = await SharedPreferences.getInstance();
+        return _decode(prefs.get(storageKey));
+      }, (error, _) => StorageFailure('Could not load the Wishlist: $error'));
 
   @override
   EitherResponse<Unit> saveEntries(List<WishlistEntry> entries) =>
-      TaskEither.tryCatch(
-        () async {
-          final prefs = await SharedPreferences.getInstance();
-          final json = jsonEncode([
-            for (final entry in entries) WishlistEntryDto(entry).toJson(),
-          ]);
-          final saved = await prefs.setString(storageKey, json);
-          if (!saved) throw StateError('storage rejected the write');
-          return unit;
-        },
-        (error, _) => StorageFailure('Could not save the Wishlist: $error'),
-      );
+      TaskEither.tryCatch(() async {
+        final prefs = await SharedPreferences.getInstance();
+        final json = jsonEncode([
+          for (final entry in entries) WishlistEntryDto(entry).toJson(),
+        ]);
+        final saved = await prefs.setString(storageKey, json);
+        if (!saved) throw StateError('storage rejected the write');
+        return unit;
+      }, (error, _) => StorageFailure('Could not save the Wishlist: $error'));
 
   /// Corrupt or unreadable data loads as an empty Wishlist.
   List<WishlistEntry> _decode(Object? raw) {

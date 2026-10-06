@@ -11,9 +11,10 @@ import 'wishlist_event.dart';
 import 'wishlist_state.dart';
 
 class WishlistBloc extends Bloc<WishlistEvent, WishlistState> {
-  final IWishlistRepository _wishlistRepository;
+  IWishlistRepository _wishlistRepository;
+  IProductRepository _productRepository;
+  StreamSubscription<List<Product>>? _catalogSubscription;
   final DateTime Function() _clock;
-  StreamSubscription<List<Product>>? _productSubscription;
 
   /// The entry most recently taken off by Remove, kept for Undo.
   WishlistEntry? _lastRemoved;
@@ -23,6 +24,7 @@ class WishlistBloc extends Bloc<WishlistEvent, WishlistState> {
     required IProductRepository productRepository,
     DateTime Function()? clock,
   }) : _wishlistRepository = wishlistRepository,
+       _productRepository = productRepository,
        _clock = clock ?? DateTime.now,
        super(const WishlistLoading()) {
     on<WishlistEvent>(
@@ -35,30 +37,44 @@ class WishlistBloc extends Bloc<WishlistEvent, WishlistState> {
           products,
           emit,
         ),
+        WishlistRepositoriesSwitched(
+          :final wishlistRepository,
+          :final productRepository,
+        ) =>
+          _onRepositoriesSwitched(wishlistRepository, productRepository, emit),
       },
       transformer: sequential(),
     );
+    _followCatalog();
     add(const WishlistStarted());
-    _subscribeToProducts(productRepository);
   }
 
-  /// Follows [repository]'s catalog, replacing any earlier subscription.
-  void _subscribeToProducts(IProductRepository repository) {
-    _productSubscription?.cancel();
-    _productSubscription = repository.productStream.listen(
+  /// Listens to the current product repository's catalog, and stops
+  /// listening to the previous one.
+  void _followCatalog() {
+    unawaited(_catalogSubscription?.cancel());
+    _catalogSubscription = _productRepository.productStream.listen(
       (products) => add(WishlistCatalogUpdated(products)),
     );
-  }
-
-  @override
-  Future<void> close() async {
-    await _productSubscription?.cancel();
-    return super.close();
   }
 
   Future<void> _onStarted(Emitter<WishlistState> emit) async {
     final result = await _wishlistRepository.loadEntries().run();
     emit(WishlistLoaded(result.getOrElse((_) => const [])));
+  }
+
+  Future<void> _onRepositoriesSwitched(
+    IWishlistRepository wishlistRepository,
+    IProductRepository productRepository,
+    Emitter<WishlistState> emit,
+  ) async {
+    _wishlistRepository = wishlistRepository;
+    _productRepository = productRepository;
+    _followCatalog();
+    // The removed entry belongs to the old Data Source's Wishlist.
+    _lastRemoved = null;
+    emit(const WishlistLoading());
+    await _onStarted(emit);
   }
 
   Future<void> _onToggled(Product product, Emitter<WishlistState> emit) async {
@@ -143,5 +159,11 @@ class WishlistBloc extends Bloc<WishlistEvent, WishlistState> {
     if (result.isLeft()) return false;
     emit(WishlistLoaded(entries));
     return true;
+  }
+
+  @override
+  Future<void> close() async {
+    await _catalogSubscription?.cancel();
+    return super.close();
   }
 }

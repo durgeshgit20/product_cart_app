@@ -1,5 +1,7 @@
 import 'package:equatable/equatable.dart';
 import '../../../products/domain/entities/product.dart';
+import '../../../products/domain/repositories/i_product_repository.dart';
+import '../../domain/repositories/i_wishlist_repository.dart';
 
 sealed class WishlistEvent extends Equatable {
   const WishlistEvent();
@@ -48,4 +50,19 @@ final class WishlistCatalogUpdated extends WishlistEvent {
 /// with its original Price Drop baseline and Wishlisted time.
 final class WishlistRemovalUndone extends WishlistEvent {
   const WishlistRemovalUndone();
+}
+
+/// The Data Source was switched: shows [wishlistRepository]'s Wishlist and
+/// follows [productRepository]'s catalog from now on.
+final class WishlistRepositoriesSwitched extends WishlistEvent {
+  final IWishlistRepository wishlistRepository;
+  final IProductRepository productRepository;
+
+  const WishlistRepositoriesSwitched({
+    required this.wishlistRepository,
+    required this.productRepository,
+  });
+
+  @override
+  List<Object?> get props => [wishlistRepository, productRepository];
 }

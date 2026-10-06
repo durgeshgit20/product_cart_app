@@ -26,8 +26,7 @@ import '../../features/products/domain/repositories/i_product_repository.dart'
     as _i367;
 import '../../features/products/presentation/bloc/product_list_bloc.dart'
     as _i848;
-import '../../features/wishlist/data/repositories/shared_preferences_wishlist_repository.dart'
-    as _i480;
+import '../../features/wishlist/data/wishlist_storage_module.dart' as _i783;
 import '../../features/wishlist/domain/repositories/i_wishlist_repository.dart'
     as _i1047;
 import '../network/dio_client.dart' as _i667;
@@ -45,6 +44,7 @@ extension GetItInjectableX on _i174.GetIt {
   }) {
     final gh = _i526.GetItHelper(this, environment, environmentFilter);
     final registerModule = _$RegisterModule();
+    final wishlistStorageModule = _$WishlistStorageModule();
     gh.lazySingleton<_i361.Dio>(() => registerModule.dio);
     gh.lazySingleton<_i667.DioClient>(() => _i667.DioClient());
     gh.lazySingleton<_i166.IProductRemoteDataSource>(
@@ -61,7 +61,12 @@ extension GetItInjectableX on _i174.GetIt {
       ),
     );
     gh.lazySingleton<_i1047.IWishlistRepository>(
-      () => _i480.SharedPreferencesWishlistRepository(),
+      () => wishlistStorageModule.liveWishlistRepository,
+      registerFor: {_dev, _prod},
+    );
+    gh.lazySingleton<_i1047.IWishlistRepository>(
+      () => wishlistStorageModule.mockWishlistRepository,
+      registerFor: {_mock},
     );
     gh.factory<_i517.CartBloc>(
       () => _i517.CartBloc(productRepository: gh<_i367.IProductRepository>()),
@@ -76,3 +81,5 @@ extension GetItInjectableX on _i174.GetIt {
 }
 
 class _$RegisterModule extends _i291.RegisterModule {}
+
+class _$WishlistStorageModule extends _i783.WishlistStorageModule {}
