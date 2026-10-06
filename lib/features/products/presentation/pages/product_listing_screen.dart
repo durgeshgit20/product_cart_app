@@ -13,7 +13,11 @@ import '../widgets/product_tile.dart';
 import '../../../cart/presentation/bloc/cart_bloc.dart';
 import '../../../cart/presentation/bloc/cart_event.dart';
 import '../../../cart/presentation/bloc/cart_state.dart';
-import '../../../cart/presentation/pages/cart_screen.dart';
+import '../../../cart/presentation/widgets/cart_app_bar_button.dart';
+import '../../../wishlist/domain/repositories/i_wishlist_repository.dart';
+import '../../../wishlist/presentation/bloc/wishlist_bloc.dart';
+import '../../../wishlist/presentation/bloc/wishlist_event.dart';
+import '../../../wishlist/presentation/widgets/wishlist_app_bar_button.dart';
 
 class ProductListingScreen extends StatefulWidget {
   const ProductListingScreen({super.key});
@@ -55,6 +59,12 @@ class _ProductListingScreenState extends State<ProductListingScreen> {
       ),
     );
     context.read<CartBloc>().updateRepository(newRepository);
+    context.read<WishlistBloc>().add(
+      WishlistRepositoriesSwitched(
+        wishlistRepository: getIt<IWishlistRepository>(),
+        productRepository: newRepository,
+      ),
+    );
 
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
@@ -199,46 +209,8 @@ class _ProductListingScreenState extends State<ProductListingScreen> {
                 ),
               ],
             ),
-            BlocBuilder<CartBloc, CartState>(
-              builder: (context, cartState) {
-                return Stack(
-                  alignment: Alignment.center,
-                  children: [
-                    IconButton(
-                      icon: const Icon(Icons.shopping_cart),
-                      onPressed: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (_) => BlocProvider.value(
-                              value: context.read<CartBloc>(),
-                              child: const CartScreen(),
-                            ),
-                          ),
-                        );
-                      },
-                    ),
-                    if (cartState.itemCount > 0)
-                      Positioned(
-                        right: 6,
-                        top: 6,
-                        child: CircleAvatar(
-                          radius: 9,
-                          backgroundColor: Colors.red,
-                          child: Text(
-                            '${cartState.itemCount}',
-                            style: const TextStyle(
-                              color: Colors.white,
-                              fontSize: 11,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                        ),
-                      ),
-                  ],
-                );
-              },
-            ),
+            const WishlistAppBarButton(),
+            const CartAppBarButton(),
           ],
         ),
         body: Column(

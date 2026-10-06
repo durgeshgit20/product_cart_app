@@ -5,6 +5,8 @@ import 'features/products/domain/repositories/i_product_repository.dart';
 import 'features/products/presentation/bloc/product_list_bloc.dart';
 import 'features/products/presentation/pages/product_listing_screen.dart';
 import 'features/cart/presentation/bloc/cart_bloc.dart';
+import 'features/wishlist/domain/repositories/i_wishlist_repository.dart';
+import 'features/wishlist/presentation/bloc/wishlist_bloc.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
@@ -31,6 +33,12 @@ class ProductCartApp extends StatelessWidget {
         ),
         BlocProvider<CartBloc>(
           create: (_) => CartBloc(productRepository: productRepository),
+        ),
+        BlocProvider<WishlistBloc>(
+          create: (_) => WishlistBloc(
+            wishlistRepository: getIt<IWishlistRepository>(),
+            productRepository: productRepository,
+          ),
         ),
       ],
       child: MaterialApp(

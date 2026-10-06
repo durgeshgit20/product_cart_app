@@ -11,7 +11,10 @@
 .svn/
 .swiftpm/
 migrate_working_dir/
-.agents/
+.agents/*
+!.agents/skills/
+.agents/skills/*
+!.agents/skills/flutter-expert/
 
 
 # IntelliJ related
