@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:bloc_concurrency/bloc_concurrency.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../products/domain/entities/product.dart';
@@ -95,7 +96,7 @@ class WishlistBloc extends Bloc<WishlistEvent, WishlistState> {
       );
       entries = [entry, ...current.entries];
     }
-    await _save(entries, emit);
+    await _save(current.withEntries(entries), emit);
   }
 
   Future<void> _onRemoved(String productId, Emitter<WishlistState> emit) async {
@@ -106,10 +107,13 @@ class WishlistBloc extends Bloc<WishlistEvent, WishlistState> {
         .firstOrNull;
     if (removed == null) return;
 
-    final saved = await _save([
-      for (final entry in current.entries)
-        if (entry.productId != productId) entry,
-    ], emit);
+    final saved = await _save(
+      current.withEntries([
+        for (final entry in current.entries)
+          if (entry.productId != productId) entry,
+      ]),
+      emit,
+    );
     if (saved) _lastRemoved = removed;
   }
 
@@ -128,7 +132,9 @@ class WishlistBloc extends Bloc<WishlistEvent, WishlistState> {
     );
     final entries = List.of(current.entries)
       ..insert(index == -1 ? current.entries.length : index, removed);
-    if (!await _save(entries, emit)) _lastRemoved = removed;
+    if (!await _save(current.withEntries(entries), emit)) {
+      _lastRemoved = removed;
+    }
   }
 
   Future<void> _onCatalogUpdated(
@@ -142,22 +148,25 @@ class WishlistBloc extends Bloc<WishlistEvent, WishlistState> {
       for (final entry in current.entries)
         switch (latest[entry.productId]) {
           final product? => entry.withDetails(product),
+          // No Longer Available: keep its last-known details.
           null => entry,
         },
     ];
-    await _save(entries, emit);
+    final next = WishlistLoaded(entries, catalogIds: latest.keys.toSet());
+    if (listEquals(entries, current.entries)) {
+      emit(next);
+      return;
+    }
+    await _save(next, emit);
   }
 
-  /// Saves [entries] and, once they are safely stored, emits them.
+  /// Saves [next]'s entries and, once they are safely stored, emits [next].
   /// If saving fails the Wishlist stays as it was, so the screen never shows
   /// a change that would be lost on restart. Returns whether it was saved.
-  Future<bool> _save(
-    List<WishlistEntry> entries,
-    Emitter<WishlistState> emit,
-  ) async {
-    final result = await _wishlistRepository.saveEntries(entries).run();
+  Future<bool> _save(WishlistLoaded next, Emitter<WishlistState> emit) async {
+    final result = await _wishlistRepository.saveEntries(next.entries).run();
     if (result.isLeft()) return false;
-    emit(WishlistLoaded(entries));
+    emit(next);
     return true;
   }
 
