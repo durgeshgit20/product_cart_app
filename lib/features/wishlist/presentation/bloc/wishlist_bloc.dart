@@ -115,7 +115,7 @@ class WishlistBloc extends Bloc<WishlistEvent, WishlistState> {
       current.withEntries([
         for (final entry in current.entries)
           if (entry.productId != productId) entry,
-      ]),
+      ], outcome: RemovedOutcome(removed)),
       emit,
     );
     if (saved) _lastRemoved = removed;
@@ -129,11 +129,14 @@ class WishlistBloc extends Bloc<WishlistEvent, WishlistState> {
     if (current is! WishlistLoaded || !current.canMoveToCart(productId)) {
       return;
     }
+    final moved = current.entries.firstWhere(
+      (entry) => entry.productId == productId,
+    );
     await _save(
       current.withEntries([
         for (final entry in current.entries)
           if (entry.productId != productId) entry,
-      ]),
+      ], outcome: MovedToCartOutcome(moved)),
       emit,
     );
   }

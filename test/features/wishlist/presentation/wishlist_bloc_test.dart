@@ -169,9 +169,28 @@ void main() {
       act: (bloc) => bloc.add(const WishlistEntryRemoved('mock-3')),
       expect: () => [
         WishlistLoaded([savedWatch, savedHeadphones]),
-        WishlistLoaded([savedHeadphones]),
+        WishlistLoaded([
+          savedHeadphones,
+        ], outcome: RemovedOutcome(savedWatch)),
       ],
       verify: (_) => expect(repository.saved, [savedHeadphones]),
+    );
+
+    blocTest<WishlistBloc, WishlistState>(
+      'reports no removal when saving fails, so no Undo is offered',
+      setUp: () => repository = FakeWishlistRepository([savedHeadphones]),
+      build: () => WishlistBloc(
+        wishlistRepository: repository,
+        productRepository: products,
+      ),
+      act: (bloc) async {
+        await bloc.stream.first;
+        repository.failWith = const StorageFailure('disk full');
+        bloc.add(const WishlistEntryRemoved('mock-1'));
+      },
+      expect: () => [
+        WishlistLoaded([savedHeadphones]),
+      ],
     );
   });
 
@@ -810,9 +829,29 @@ void main() {
       act: (bloc) => bloc.add(const WishlistMovedToCart('mock-1')),
       expect: () => [
         WishlistLoaded([savedWatch, savedHeadphones]),
-        WishlistLoaded([savedWatch]),
+        WishlistLoaded([
+          savedWatch,
+        ], outcome: MovedToCartOutcome(savedHeadphones)),
       ],
       verify: (_) => expect(repository.saved, [savedWatch]),
+    );
+
+    blocTest<WishlistBloc, WishlistState>(
+      'reports no move and keeps the entry when saving fails, so the screen '
+      'does not add it to the Cart',
+      setUp: () => repository = FakeWishlistRepository([savedHeadphones]),
+      build: () => WishlistBloc(
+        wishlistRepository: repository,
+        productRepository: products,
+      ),
+      act: (bloc) async {
+        await bloc.stream.first;
+        repository.failWith = const StorageFailure('disk full');
+        bloc.add(const WishlistMovedToCart('mock-1'));
+      },
+      expect: () => [
+        WishlistLoaded([savedHeadphones]),
+      ],
     );
 
     blocTest<WishlistBloc, WishlistState>(
