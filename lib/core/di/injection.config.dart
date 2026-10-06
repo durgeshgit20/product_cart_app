@@ -26,6 +26,10 @@ import '../../features/products/domain/repositories/i_product_repository.dart'
     as _i367;
 import '../../features/products/presentation/bloc/product_list_bloc.dart'
     as _i848;
+import '../../features/wishlist/data/repositories/shared_preferences_wishlist_repository.dart'
+    as _i480;
+import '../../features/wishlist/domain/repositories/i_wishlist_repository.dart'
+    as _i1047;
 import '../network/dio_client.dart' as _i667;
 import 'register_module.dart' as _i291;
 
@@ -55,6 +59,9 @@ extension GetItInjectableX on _i174.GetIt {
       () => _i764.ProductRepositoryImpl(
         remoteDataSource: gh<_i166.IProductRemoteDataSource>(),
       ),
+    );
+    gh.lazySingleton<_i1047.IWishlistRepository>(
+      () => _i480.SharedPreferencesWishlistRepository(),
     );
     gh.factory<_i517.CartBloc>(
       () => _i517.CartBloc(productRepository: gh<_i367.IProductRepository>()),
