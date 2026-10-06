@@ -7,6 +7,7 @@ import 'package:product_cart_app/features/wishlist/presentation/bloc/wishlist_bl
 import 'package:product_cart_app/features/wishlist/presentation/bloc/wishlist_event.dart';
 import 'package:product_cart_app/features/wishlist/presentation/bloc/wishlist_state.dart';
 
+import '../fakes/fake_product_repository.dart';
 import '../fakes/fake_wishlist_repository.dart';
 
 void main() {
@@ -36,14 +37,21 @@ void main() {
   );
 
   late FakeWishlistRepository repository;
+  late FakeProductRepository catalog;
 
-  setUp(() => repository = FakeWishlistRepository());
+  setUp(() {
+    repository = FakeWishlistRepository();
+    catalog = FakeProductRepository();
+  });
 
   group('on start', () {
     blocTest<WishlistBloc, WishlistState>(
       'loads the saved Wishlist',
       setUp: () => repository = FakeWishlistRepository([savedHeadphones]),
-      build: () => WishlistBloc(wishlistRepository: repository),
+      build: () => WishlistBloc(
+        wishlistRepository: repository,
+        productRepository: catalog,
+      ),
       expect: () => [
         WishlistLoaded([savedHeadphones]),
       ],
@@ -55,8 +63,11 @@ void main() {
 
     blocTest<WishlistBloc, WishlistState>(
       'Wishlists a Product with its current price and the current time',
-      build: () =>
-          WishlistBloc(wishlistRepository: repository, clock: () => now),
+      build: () => WishlistBloc(
+        wishlistRepository: repository,
+        productRepository: catalog,
+        clock: () => now,
+      ),
       act: (bloc) => bloc.add(const WishlistToggled(headphones)),
       expect: () => [
         const WishlistLoaded([]),
@@ -73,7 +84,10 @@ void main() {
     blocTest<WishlistBloc, WishlistState>(
       'takes a Wishlisted Product off the Wishlist',
       setUp: () => repository = FakeWishlistRepository([savedHeadphones]),
-      build: () => WishlistBloc(wishlistRepository: repository),
+      build: () => WishlistBloc(
+        wishlistRepository: repository,
+        productRepository: catalog,
+      ),
       act: (bloc) => bloc.add(const WishlistToggled(headphones)),
       expect: () => [
         WishlistLoaded([savedHeadphones]),
@@ -84,7 +98,10 @@ void main() {
     blocTest<WishlistBloc, WishlistState>(
       'recognises a Wishlisted Product by id even if its details changed',
       setUp: () => repository = FakeWishlistRepository([savedHeadphones]),
-      build: () => WishlistBloc(wishlistRepository: repository),
+      build: () => WishlistBloc(
+        wishlistRepository: repository,
+        productRepository: catalog,
+      ),
       act: (bloc) =>
           bloc.add(WishlistToggled(headphones.copyWith(price: 179.99))),
       skip: 1,
@@ -94,8 +111,11 @@ void main() {
     blocTest<WishlistBloc, WishlistState>(
       'sent while the saved Wishlist is still loading, applies after it loads',
       setUp: () => repository = FakeWishlistRepository([savedHeadphones]),
-      build: () =>
-          WishlistBloc(wishlistRepository: repository, clock: () => now),
+      build: () => WishlistBloc(
+        wishlistRepository: repository,
+        productRepository: catalog,
+        clock: () => now,
+      ),
       act: (bloc) => bloc.add(const WishlistToggled(soldOutWatch)),
       expect: () => [
         WishlistLoaded([savedHeadphones]),
@@ -112,8 +132,11 @@ void main() {
 
     blocTest<WishlistBloc, WishlistState>(
       'Wishlists an Out of Stock Product',
-      build: () =>
-          WishlistBloc(wishlistRepository: repository, clock: () => now),
+      build: () => WishlistBloc(
+        wishlistRepository: repository,
+        productRepository: catalog,
+        clock: () => now,
+      ),
       act: (bloc) => bloc.add(const WishlistToggled(soldOutWatch)),
       skip: 1,
       expect: () => [
@@ -139,7 +162,10 @@ void main() {
       'takes the entry with that product id off the Wishlist and saves it',
       setUp: () =>
           repository = FakeWishlistRepository([savedWatch, savedHeadphones]),
-      build: () => WishlistBloc(wishlistRepository: repository),
+      build: () => WishlistBloc(
+        wishlistRepository: repository,
+        productRepository: catalog,
+      ),
       act: (bloc) => bloc.add(const WishlistEntryRemoved('mock-3')),
       expect: () => [
         WishlistLoaded([savedWatch, savedHeadphones]),
@@ -179,7 +205,10 @@ void main() {
         savedWatch,
         savedHeadphones,
       ]),
-      build: () => WishlistBloc(wishlistRepository: repository),
+      build: () => WishlistBloc(
+        wishlistRepository: repository,
+        productRepository: catalog,
+      ),
       act: (bloc) => bloc
         ..add(const WishlistEntryRemoved('mock-3'))
         ..add(const WishlistRemovalUndone()),
@@ -198,7 +227,10 @@ void main() {
         savedWatch,
         savedHeadphones,
       ]),
-      build: () => WishlistBloc(wishlistRepository: repository),
+      build: () => WishlistBloc(
+        wishlistRepository: repository,
+        productRepository: catalog,
+      ),
       act: (bloc) => bloc
         ..add(const WishlistEntryRemoved('mock-4'))
         ..add(const WishlistEntryRemoved('mock-1'))
@@ -216,6 +248,7 @@ void main() {
       setUp: () => repository = FakeWishlistRepository([savedWatch]),
       build: () => WishlistBloc(
         wishlistRepository: repository,
+        productRepository: catalog,
         clock: () => DateTime(2026, 10, 6),
       ),
       act: (bloc) => bloc
@@ -245,6 +278,7 @@ void main() {
         final clock = times.iterator;
         return WishlistBloc(
           wishlistRepository: repository,
+          productRepository: catalog,
           clock: () => (clock..moveNext()).current,
         );
       },
@@ -263,7 +297,10 @@ void main() {
 
     blocTest<WishlistBloc, WishlistState>(
       'has a count of zero when nothing is Wishlisted',
-      build: () => WishlistBloc(wishlistRepository: repository),
+      build: () => WishlistBloc(
+        wishlistRepository: repository,
+        productRepository: catalog,
+      ),
       verify: (bloc) => expect((bloc.state as WishlistLoaded).count, 0),
     );
   });
@@ -273,8 +310,11 @@ void main() {
 
     blocTest<WishlistBloc, WishlistState>(
       'saves the Wishlist after a Product is Wishlisted',
-      build: () =>
-          WishlistBloc(wishlistRepository: repository, clock: () => now),
+      build: () => WishlistBloc(
+        wishlistRepository: repository,
+        productRepository: catalog,
+        clock: () => now,
+      ),
       act: (bloc) => bloc.add(const WishlistToggled(soldOutWatch)),
       verify: (_) => expect(repository.saved, [
         WishlistEntry(
@@ -288,7 +328,10 @@ void main() {
     blocTest<WishlistBloc, WishlistState>(
       'saves the Wishlist after a Product is taken off it',
       setUp: () => repository = FakeWishlistRepository([savedHeadphones]),
-      build: () => WishlistBloc(wishlistRepository: repository),
+      build: () => WishlistBloc(
+        wishlistRepository: repository,
+        productRepository: catalog,
+      ),
       act: (bloc) => bloc.add(const WishlistToggled(headphones)),
       verify: (_) => expect(repository.saved, isEmpty),
     );
@@ -299,6 +342,7 @@ void main() {
         // A first app session Wishlists a Product, then the app is closed.
         final firstSession = WishlistBloc(
           wishlistRepository: repository,
+          productRepository: catalog,
           clock: () => now,
         )..add(const WishlistToggled(headphones));
         await firstSession.stream.firstWhere(
@@ -306,7 +350,10 @@ void main() {
         );
         await firstSession.close();
       },
-      build: () => WishlistBloc(wishlistRepository: repository),
+      build: () => WishlistBloc(
+        wishlistRepository: repository,
+        productRepository: catalog,
+      ),
       expect: () => [
         WishlistLoaded([
           WishlistEntry(
@@ -321,7 +368,10 @@ void main() {
     blocTest<WishlistBloc, WishlistState>(
       'keeps the Wishlist unchanged when saving fails',
       setUp: () => repository = FakeWishlistRepository([savedHeadphones]),
-      build: () => WishlistBloc(wishlistRepository: repository),
+      build: () => WishlistBloc(
+        wishlistRepository: repository,
+        productRepository: catalog,
+      ),
       act: (bloc) async {
         await bloc.stream.first;
         repository.failWith = const StorageFailure('disk full');
@@ -337,8 +387,43 @@ void main() {
       setUp: () =>
           repository = FakeWishlistRepository([savedHeadphones])
             ..failWith = const StorageFailure('unreadable'),
-      build: () => WishlistBloc(wishlistRepository: repository),
+      build: () => WishlistBloc(
+        wishlistRepository: repository,
+        productRepository: catalog,
+      ),
       expect: () => [const WishlistLoaded([])],
+    );
+  });
+
+  group('catalog updates', () {
+    final cheaperHeadphones = headphones.copyWith(
+      name: 'Headphones Pro',
+      price: 179.99,
+      imageUrl: 'https://example.com/1b.png',
+      stockQuantity: 2,
+    );
+    final refreshedHeadphones = WishlistEntry(
+      product: cheaperHeadphones,
+      wishlistedPrice: 199.99,
+      wishlistedAt: DateTime(2026, 10, 1),
+    );
+
+    blocTest<WishlistBloc, WishlistState>(
+      'refresh and save the details of Wishlisted Products in the catalog, '
+      'keeping the baseline',
+      setUp: () => repository = FakeWishlistRepository([savedHeadphones]),
+      build: () => WishlistBloc(
+        wishlistRepository: repository,
+        productRepository: catalog,
+      ),
+      act: (bloc) async {
+        await bloc.stream.first;
+        catalog.publish([cheaperHeadphones, soldOutWatch]);
+      },
+      verify: (bloc) {
+        expect((bloc.state as WishlistLoaded).entries, [refreshedHeadphones]);
+        expect(repository.saved, [refreshedHeadphones]);
+      },
     );
   });
 }

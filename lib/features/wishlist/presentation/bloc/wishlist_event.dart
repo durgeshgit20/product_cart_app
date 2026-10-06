@@ -34,6 +34,16 @@ final class WishlistEntryRemoved extends WishlistEvent {
   List<Object?> get props => [productId];
 }
 
+/// The product repository published a new catalog.
+final class WishlistCatalogUpdated extends WishlistEvent {
+  final List<Product> products;
+
+  const WishlistCatalogUpdated(this.products);
+
+  @override
+  List<Object?> get props => [products];
+}
+
 /// Puts back the entry most recently taken off by [WishlistEntryRemoved],
 /// with its original Price Drop baseline and Wishlisted time.
 final class WishlistRemovalUndone extends WishlistEvent {

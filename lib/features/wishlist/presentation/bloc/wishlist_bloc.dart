@@ -1,7 +1,10 @@
+import 'dart:async';
+
 import 'package:bloc_concurrency/bloc_concurrency.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../products/domain/entities/product.dart';
+import '../../../products/domain/repositories/i_product_repository.dart';
 import '../../domain/entities/wishlist_entry.dart';
 import '../../domain/repositories/i_wishlist_repository.dart';
 import 'wishlist_event.dart';
@@ -10,12 +13,14 @@ import 'wishlist_state.dart';
 class WishlistBloc extends Bloc<WishlistEvent, WishlistState> {
   final IWishlistRepository _wishlistRepository;
   final DateTime Function() _clock;
+  StreamSubscription<List<Product>>? _productSubscription;
 
   /// The entry most recently taken off by Remove, kept for Undo.
   WishlistEntry? _lastRemoved;
 
   WishlistBloc({
     required IWishlistRepository wishlistRepository,
+    required IProductRepository productRepository,
     DateTime Function()? clock,
   }) : _wishlistRepository = wishlistRepository,
        _clock = clock ?? DateTime.now,
@@ -26,10 +31,29 @@ class WishlistBloc extends Bloc<WishlistEvent, WishlistState> {
         WishlistToggled(:final product) => _onToggled(product, emit),
         WishlistEntryRemoved(:final productId) => _onRemoved(productId, emit),
         WishlistRemovalUndone() => _onRemovalUndone(emit),
+        WishlistCatalogUpdated(:final products) => _onCatalogUpdated(
+          products,
+          emit,
+        ),
       },
       transformer: sequential(),
     );
     add(const WishlistStarted());
+    _subscribeToProducts(productRepository);
+  }
+
+  /// Follows [repository]'s catalog, replacing any earlier subscription.
+  void _subscribeToProducts(IProductRepository repository) {
+    _productSubscription?.cancel();
+    _productSubscription = repository.productStream.listen(
+      (products) => add(WishlistCatalogUpdated(products)),
+    );
+  }
+
+  @override
+  Future<void> close() async {
+    await _productSubscription?.cancel();
+    return super.close();
   }
 
   Future<void> _onStarted(Emitter<WishlistState> emit) async {
@@ -89,6 +113,23 @@ class WishlistBloc extends Bloc<WishlistEvent, WishlistState> {
     final entries = List.of(current.entries)
       ..insert(index == -1 ? current.entries.length : index, removed);
     if (!await _save(entries, emit)) _lastRemoved = removed;
+  }
+
+  Future<void> _onCatalogUpdated(
+    List<Product> products,
+    Emitter<WishlistState> emit,
+  ) async {
+    final current = state;
+    if (current is! WishlistLoaded) return;
+    final latest = {for (final product in products) product.id: product};
+    final entries = [
+      for (final entry in current.entries)
+        switch (latest[entry.productId]) {
+          final product? => entry.withDetails(product),
+          null => entry,
+        },
+    ];
+    await _save(entries, emit);
   }
 
   /// Saves [entries] and, once they are safely stored, emits them.

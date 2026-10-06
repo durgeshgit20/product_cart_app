@@ -21,6 +21,14 @@ class WishlistEntry extends Equatable {
 
   String get productId => product.id;
 
+  /// This entry with the latest known [product] details. The baseline and
+  /// the Wishlisted time stay as they were.
+  WishlistEntry withDetails(Product product) => WishlistEntry(
+    product: product,
+    wishlistedPrice: wishlistedPrice,
+    wishlistedAt: wishlistedAt,
+  );
+
   @override
   List<Object?> get props => [product, wishlistedPrice, wishlistedAt];
 }
