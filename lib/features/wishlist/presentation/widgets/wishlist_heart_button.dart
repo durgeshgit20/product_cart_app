@@ -12,18 +12,13 @@ class WishlistHeartButton extends StatelessWidget {
 
   const WishlistHeartButton({super.key, required this.product});
 
-  bool _isWishlisted(WishlistState state) => switch (state) {
-    WishlistLoading() => false,
-    WishlistLoaded() => state.isWishlisted(product.id),
-  };
-
   @override
   Widget build(BuildContext context) {
     return BlocBuilder<WishlistBloc, WishlistState>(
       buildWhen: (previous, current) =>
-          _isWishlisted(previous) != _isWishlisted(current),
+          previous.isWishlisted(product.id) != current.isWishlisted(product.id),
       builder: (context, state) {
-        final isWishlisted = _isWishlisted(state);
+        final isWishlisted = state.isWishlisted(product.id);
         return IconButton(
           key: Key('wishlist_toggle_${product.id}'),
           tooltip: isWishlisted ? 'Remove from Wishlist' : 'Add to Wishlist',

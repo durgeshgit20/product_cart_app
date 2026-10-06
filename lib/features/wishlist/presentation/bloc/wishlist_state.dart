@@ -4,6 +4,12 @@ import '../../domain/entities/wishlist_entry.dart';
 sealed class WishlistState extends Equatable {
   const WishlistState();
 
+  /// How many Products are Wishlisted: zero while loading.
+  int get count;
+
+  /// Whether [productId] is Wishlisted: false while loading.
+  bool isWishlisted(String productId);
+
   @override
   List<Object?> get props => [];
 }
@@ -11,6 +17,12 @@ sealed class WishlistState extends Equatable {
 /// Entries are still being loaded from storage.
 final class WishlistLoading extends WishlistState {
   const WishlistLoading();
+
+  @override
+  int get count => 0;
+
+  @override
+  bool isWishlisted(String productId) => false;
 }
 
 final class WishlistLoaded extends WishlistState {
@@ -28,8 +40,10 @@ final class WishlistLoaded extends WishlistState {
 
   const WishlistLoaded(this.entries, {this.catalogIds, this.outcome});
 
+  @override
   int get count => entries.length;
 
+  @override
   bool isWishlisted(String productId) =>
       entries.any((entry) => entry.productId == productId);
 
