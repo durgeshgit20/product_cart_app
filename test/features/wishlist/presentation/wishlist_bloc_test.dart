@@ -595,4 +595,27 @@ void main() {
       },
     );
   });
+
+  group('Out of Stock', () {
+    WishlistLoaded loaded(WishlistBloc bloc) => bloc.state as WishlistLoaded;
+
+    blocTest<WishlistBloc, WishlistState>(
+      'follows the latest known details',
+      setUp: () => repository = FakeWishlistRepository([savedHeadphones]),
+      build: () => WishlistBloc(
+        wishlistRepository: repository,
+        productRepository: products,
+      ),
+      act: (bloc) async {
+        await bloc.stream.first;
+        expect(loaded(bloc).entries.single.isOutOfStock, isFalse);
+        products.publish([
+          headphones.copyWith(stockQuantity: 0, isOutOfStock: true),
+        ]);
+        await bloc.stream.first;
+      },
+      verify: (bloc) =>
+          expect(loaded(bloc).entries.single.isOutOfStock, isTrue),
+    );
+  });
 }
