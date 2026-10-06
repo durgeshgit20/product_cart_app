@@ -176,12 +176,17 @@ class WishlistBloc extends Bloc<WishlistEvent, WishlistState> {
           null => entry,
         },
     ];
-    final next = WishlistLoaded(entries, catalogIds: latest.keys.toSet());
+    final catalogIds = latest.keys.toSet();
+    final next = WishlistLoaded(entries, catalogIds: catalogIds);
     if (listEquals(entries, current.entries)) {
       emit(next);
       return;
     }
-    await _save(next, emit);
+    if (!await _save(next, emit)) {
+      // No Longer Available follows the catalog, not storage, so it still
+      // applies; the refreshed details aren't shown as they weren't saved.
+      emit(WishlistLoaded(current.entries, catalogIds: catalogIds));
+    }
   }
 
   /// Saves [next]'s entries and, once they are safely stored, emits [next].

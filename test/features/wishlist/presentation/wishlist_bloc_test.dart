@@ -694,6 +694,28 @@ void main() {
     );
 
     blocTest<WishlistBloc, WishlistState>(
+      'is still marked when saving the refreshed details fails, which keep '
+      'their saved values',
+      setUp: () =>
+          repository = FakeWishlistRepository([savedWatch, savedHeadphones]),
+      build: () => WishlistBloc(
+        wishlistRepository: repository,
+        productRepository: products,
+      ),
+      act: (bloc) async {
+        await bloc.stream.first;
+        repository.failWith = const StorageFailure('disk full');
+        products.publish([soldOutWatch.copyWith(price: 79.0)]);
+        await bloc.stream.first;
+      },
+      verify: (bloc) {
+        expect(loaded(bloc).entries, [savedWatch, savedHeadphones]);
+        expect(loaded(bloc).isNoLongerAvailable('mock-1'), isTrue);
+        expect(loaded(bloc).isNoLongerAvailable('mock-3'), isFalse);
+      },
+    );
+
+    blocTest<WishlistBloc, WishlistState>(
       'marks every entry when the catalog is empty',
       setUp: () =>
           repository = FakeWishlistRepository([savedWatch, savedHeadphones]),
