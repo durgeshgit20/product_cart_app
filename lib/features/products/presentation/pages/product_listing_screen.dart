@@ -14,6 +14,7 @@ import '../../../cart/presentation/bloc/cart_bloc.dart';
 import '../../../cart/presentation/bloc/cart_event.dart';
 import '../../../cart/presentation/bloc/cart_state.dart';
 import '../../../cart/presentation/pages/cart_screen.dart';
+import '../../../wishlist/presentation/widgets/wishlist_app_bar_button.dart';
 
 class ProductListingScreen extends StatefulWidget {
   const ProductListingScreen({super.key});
@@ -199,6 +200,7 @@ class _ProductListingScreenState extends State<ProductListingScreen> {
                 ),
               ],
             ),
+            const WishlistAppBarButton(),
             BlocBuilder<CartBloc, CartState>(
               builder: (context, cartState) {
                 return Stack(

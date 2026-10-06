@@ -5,6 +5,7 @@ import '../../../cart/domain/entities/cart_item.dart';
 import '../../../cart/presentation/bloc/cart_bloc.dart';
 import '../../../cart/presentation/bloc/cart_event.dart';
 import '../../../cart/presentation/bloc/cart_state.dart';
+import '../../../wishlist/presentation/widgets/wishlist_heart_button.dart';
 
 class ProductTile extends StatelessWidget {
   final Product product;
@@ -169,6 +170,7 @@ class ProductTile extends StatelessWidget {
                 ],
               ),
             ),
+            WishlistHeartButton(product: product),
           ],
         ),
       ),
