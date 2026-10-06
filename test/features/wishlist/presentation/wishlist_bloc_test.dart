@@ -722,4 +722,73 @@ void main() {
           expect(loaded(bloc).isNoLongerAvailable('mock-1'), isFalse),
     );
   });
+
+  group('Can Move to Cart', () {
+    WishlistLoaded loaded(WishlistBloc bloc) => bloc.state as WishlistLoaded;
+
+    blocTest<WishlistBloc, WishlistState>(
+      'is true for an in-stock Product in the latest catalog',
+      setUp: () => repository = FakeWishlistRepository([savedHeadphones]),
+      build: () => WishlistBloc(
+        wishlistRepository: repository,
+        productRepository: products,
+      ),
+      act: (bloc) async {
+        await bloc.stream.first;
+        products.publish([headphones]);
+        await bloc.stream.first;
+      },
+      verify: (bloc) => expect(loaded(bloc).canMoveToCart('mock-1'), isTrue),
+    );
+
+    blocTest<WishlistBloc, WishlistState>(
+      'is false for an Out of Stock Product',
+      setUp: () => repository = FakeWishlistRepository([
+        WishlistEntry(
+          product: soldOutWatch,
+          wishlistedPrice: 89.5,
+          wishlistedAt: DateTime(2026, 10, 3),
+        ),
+      ]),
+      build: () => WishlistBloc(
+        wishlistRepository: repository,
+        productRepository: products,
+      ),
+      act: (bloc) async {
+        await bloc.stream.first;
+        products.publish([soldOutWatch]);
+        await bloc.stream.first;
+      },
+      verify: (bloc) => expect(loaded(bloc).canMoveToCart('mock-3'), isFalse),
+    );
+
+    blocTest<WishlistBloc, WishlistState>(
+      'is false for a No Longer Available Product, and true again once it '
+      'comes back',
+      setUp: () => repository = FakeWishlistRepository([savedHeadphones]),
+      build: () => WishlistBloc(
+        wishlistRepository: repository,
+        productRepository: products,
+      ),
+      act: (bloc) async {
+        await bloc.stream.first;
+        products.publish([]);
+        await bloc.stream.first;
+        expect(loaded(bloc).canMoveToCart('mock-1'), isFalse);
+        products.publish([headphones]);
+        await bloc.stream.first;
+      },
+      verify: (bloc) => expect(loaded(bloc).canMoveToCart('mock-1'), isTrue),
+    );
+
+    blocTest<WishlistBloc, WishlistState>(
+      'is true for an in-stock Product before the first catalog arrives',
+      setUp: () => repository = FakeWishlistRepository([savedHeadphones]),
+      build: () => WishlistBloc(
+        wishlistRepository: repository,
+        productRepository: products,
+      ),
+      verify: (bloc) => expect(loaded(bloc).canMoveToCart('mock-1'), isTrue),
+    );
+  });
 }

@@ -33,6 +33,14 @@ final class WishlistLoaded extends WishlistState {
   bool isNoLongerAvailable(String productId) =>
       catalogIds?.contains(productId) == false;
 
+  /// Can Move to Cart: the Product is Wishlisted, and neither Out of Stock
+  /// nor No Longer Available.
+  bool canMoveToCart(String productId) =>
+      !isNoLongerAvailable(productId) &&
+      entries.any(
+        (entry) => entry.productId == productId && !entry.isOutOfStock,
+      );
+
   WishlistLoaded withEntries(List<WishlistEntry> entries) =>
       WishlistLoaded(entries, catalogIds: catalogIds);
 
