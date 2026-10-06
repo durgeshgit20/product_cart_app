@@ -14,6 +14,9 @@ import '../../../cart/presentation/bloc/cart_bloc.dart';
 import '../../../cart/presentation/bloc/cart_event.dart';
 import '../../../cart/presentation/bloc/cart_state.dart';
 import '../../../cart/presentation/pages/cart_screen.dart';
+import '../../../wishlist/domain/repositories/i_wishlist_repository.dart';
+import '../../../wishlist/presentation/bloc/wishlist_bloc.dart';
+import '../../../wishlist/presentation/bloc/wishlist_event.dart';
 import '../../../wishlist/presentation/widgets/wishlist_app_bar_button.dart';
 
 class ProductListingScreen extends StatefulWidget {
@@ -56,6 +59,12 @@ class _ProductListingScreenState extends State<ProductListingScreen> {
       ),
     );
     context.read<CartBloc>().updateRepository(newRepository);
+    context.read<WishlistBloc>().add(
+      WishlistRepositoriesSwitched(
+        wishlistRepository: getIt<IWishlistRepository>(),
+        productRepository: newRepository,
+      ),
+    );
 
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(

@@ -35,8 +35,10 @@ class ProductCartApp extends StatelessWidget {
           create: (_) => CartBloc(productRepository: productRepository),
         ),
         BlocProvider<WishlistBloc>(
-          create: (_) =>
-              WishlistBloc(wishlistRepository: getIt<IWishlistRepository>()),
+          create: (_) => WishlistBloc(
+            wishlistRepository: getIt<IWishlistRepository>(),
+            productRepository: productRepository,
+          ),
         ),
       ],
       child: MaterialApp(
