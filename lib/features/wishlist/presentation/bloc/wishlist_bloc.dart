@@ -1,14 +1,19 @@
+import 'dart:async';
+
 import 'package:bloc_concurrency/bloc_concurrency.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../products/domain/entities/product.dart';
+import '../../../products/domain/repositories/i_product_repository.dart';
 import '../../domain/entities/wishlist_entry.dart';
 import '../../domain/repositories/i_wishlist_repository.dart';
 import 'wishlist_event.dart';
 import 'wishlist_state.dart';
 
 class WishlistBloc extends Bloc<WishlistEvent, WishlistState> {
-  final IWishlistRepository _wishlistRepository;
+  IWishlistRepository _wishlistRepository;
+  IProductRepository _productRepository;
+  StreamSubscription<List<Product>>? _catalogSubscription;
   final DateTime Function() _clock;
 
   /// The entry most recently taken off by Remove, kept for Undo.
@@ -16,8 +21,10 @@ class WishlistBloc extends Bloc<WishlistEvent, WishlistState> {
 
   WishlistBloc({
     required IWishlistRepository wishlistRepository,
+    required IProductRepository productRepository,
     DateTime Function()? clock,
   }) : _wishlistRepository = wishlistRepository,
+       _productRepository = productRepository,
        _clock = clock ?? DateTime.now,
        super(const WishlistLoading()) {
     on<WishlistEvent>(
@@ -26,15 +33,43 @@ class WishlistBloc extends Bloc<WishlistEvent, WishlistState> {
         WishlistToggled(:final product) => _onToggled(product, emit),
         WishlistEntryRemoved(:final productId) => _onRemoved(productId, emit),
         WishlistRemovalUndone() => _onRemovalUndone(emit),
+        WishlistRepositoriesSwitched(
+          :final wishlistRepository,
+          :final productRepository,
+        ) =>
+          _onRepositoriesSwitched(wishlistRepository, productRepository, emit),
       },
       transformer: sequential(),
     );
+    _followCatalog();
     add(const WishlistStarted());
+  }
+
+  /// Listens to the current product repository's catalog, and stops
+  /// listening to the previous one.
+  void _followCatalog() {
+    unawaited(_catalogSubscription?.cancel());
+    // Catalog updates (Price Drop, No Longer Available) arrive with ticket #5.
+    _catalogSubscription = _productRepository.productStream.listen((_) {});
   }
 
   Future<void> _onStarted(Emitter<WishlistState> emit) async {
     final result = await _wishlistRepository.loadEntries().run();
     emit(WishlistLoaded(result.getOrElse((_) => const [])));
+  }
+
+  Future<void> _onRepositoriesSwitched(
+    IWishlistRepository wishlistRepository,
+    IProductRepository productRepository,
+    Emitter<WishlistState> emit,
+  ) async {
+    _wishlistRepository = wishlistRepository;
+    _productRepository = productRepository;
+    _followCatalog();
+    // The removed entry belongs to the old Data Source's Wishlist.
+    _lastRemoved = null;
+    emit(const WishlistLoading());
+    await _onStarted(emit);
   }
 
   Future<void> _onToggled(Product product, Emitter<WishlistState> emit) async {
@@ -102,5 +137,11 @@ class WishlistBloc extends Bloc<WishlistEvent, WishlistState> {
     if (result.isLeft()) return false;
     emit(WishlistLoaded(entries));
     return true;
+  }
+
+  @override
+  Future<void> close() async {
+    await _catalogSubscription?.cancel();
+    return super.close();
   }
 }
