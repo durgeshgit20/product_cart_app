@@ -33,6 +33,10 @@ class WishlistBloc extends Bloc<WishlistEvent, WishlistState> {
         WishlistStarted() => _onStarted(emit),
         WishlistToggled(:final product) => _onToggled(product, emit),
         WishlistEntryRemoved(:final productId) => _onRemoved(productId, emit),
+        WishlistMovedToCart(:final productId) => _onMovedToCart(
+          productId,
+          emit,
+        ),
         WishlistRemovalUndone() => _onRemovalUndone(emit),
         WishlistCatalogUpdated(:final products) => _onCatalogUpdated(
           products,
@@ -115,6 +119,23 @@ class WishlistBloc extends Bloc<WishlistEvent, WishlistState> {
       emit,
     );
     if (saved) _lastRemoved = removed;
+  }
+
+  Future<void> _onMovedToCart(
+    String productId,
+    Emitter<WishlistState> emit,
+  ) async {
+    final current = state;
+    if (current is! WishlistLoaded || !current.canMoveToCart(productId)) {
+      return;
+    }
+    await _save(
+      current.withEntries([
+        for (final entry in current.entries)
+          if (entry.productId != productId) entry,
+      ]),
+      emit,
+    );
   }
 
   Future<void> _onRemovalUndone(Emitter<WishlistState> emit) async {

@@ -791,4 +791,80 @@ void main() {
       verify: (bloc) => expect(loaded(bloc).canMoveToCart('mock-1'), isTrue),
     );
   });
+
+  group('Move to Cart', () {
+    final savedWatch = WishlistEntry(
+      product: soldOutWatch,
+      wishlistedPrice: 99.0,
+      wishlistedAt: DateTime(2026, 10, 3),
+    );
+
+    blocTest<WishlistBloc, WishlistState>(
+      'takes the entry off the Wishlist and saves it',
+      setUp: () =>
+          repository = FakeWishlistRepository([savedWatch, savedHeadphones]),
+      build: () => WishlistBloc(
+        wishlistRepository: repository,
+        productRepository: products,
+      ),
+      act: (bloc) => bloc.add(const WishlistMovedToCart('mock-1')),
+      expect: () => [
+        WishlistLoaded([savedWatch, savedHeadphones]),
+        WishlistLoaded([savedWatch]),
+      ],
+      verify: (_) => expect(repository.saved, [savedWatch]),
+    );
+
+    blocTest<WishlistBloc, WishlistState>(
+      'cannot be undone: Undo restores the entry removed before it instead',
+      setUp: () =>
+          repository = FakeWishlistRepository([savedWatch, savedHeadphones]),
+      build: () => WishlistBloc(
+        wishlistRepository: repository,
+        productRepository: products,
+      ),
+      act: (bloc) => bloc
+        ..add(const WishlistEntryRemoved('mock-3'))
+        ..add(const WishlistMovedToCart('mock-1'))
+        ..add(const WishlistRemovalUndone()),
+      verify: (bloc) {
+        expect(bloc.state, WishlistLoaded([savedWatch]));
+        expect(repository.saved, [savedWatch]);
+      },
+    );
+
+    blocTest<WishlistBloc, WishlistState>(
+      'leaves an Out of Stock entry on the Wishlist',
+      setUp: () =>
+          repository = FakeWishlistRepository([savedWatch, savedHeadphones]),
+      build: () => WishlistBloc(
+        wishlistRepository: repository,
+        productRepository: products,
+      ),
+      act: (bloc) => bloc.add(const WishlistMovedToCart('mock-3')),
+      expect: () => [
+        WishlistLoaded([savedWatch, savedHeadphones]),
+      ],
+      verify: (_) => expect(repository.saved, [savedWatch, savedHeadphones]),
+    );
+
+    blocTest<WishlistBloc, WishlistState>(
+      'leaves a No Longer Available entry on the Wishlist',
+      setUp: () => repository = FakeWishlistRepository([savedHeadphones]),
+      build: () => WishlistBloc(
+        wishlistRepository: repository,
+        productRepository: products,
+      ),
+      act: (bloc) async {
+        await bloc.stream.first;
+        products.publish([]);
+        await bloc.stream.first;
+        bloc.add(const WishlistMovedToCart('mock-1'));
+      },
+      verify: (bloc) {
+        expect((bloc.state as WishlistLoaded).entries, [savedHeadphones]);
+        expect(repository.saved, [savedHeadphones]);
+      },
+    );
+  });
 }

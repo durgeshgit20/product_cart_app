@@ -36,6 +36,17 @@ final class WishlistEntryRemoved extends WishlistEvent {
   List<Object?> get props => [productId];
 }
 
+/// Takes the entry for [productId] off the Wishlist because it was Moved to
+/// Cart. Unlike [WishlistEntryRemoved], it cannot be undone.
+final class WishlistMovedToCart extends WishlistEvent {
+  final String productId;
+
+  const WishlistMovedToCart(this.productId);
+
+  @override
+  List<Object?> get props => [productId];
+}
+
 /// The product repository published a new catalog.
 final class WishlistCatalogUpdated extends WishlistEvent {
   final List<Product> products;
