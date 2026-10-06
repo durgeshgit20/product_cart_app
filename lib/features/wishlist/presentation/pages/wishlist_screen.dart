@@ -41,11 +41,12 @@ class WishlistScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
     return Scaffold(
       appBar: AppBar(
         title: const Text('Your Wishlist'),
-        backgroundColor: Colors.deepPurple,
-        foregroundColor: Colors.white,
+        backgroundColor: colorScheme.primary,
+        foregroundColor: colorScheme.onPrimary,
         actions: const [CartAppBarButton()],
       ),
       body: BlocConsumer<WishlistBloc, WishlistState>(

@@ -25,6 +25,7 @@ class WishlistEntryTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final product = entry.product;
+    final colorScheme = Theme.of(context).colorScheme;
     return Card(
       elevation: 2,
       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
@@ -43,8 +44,11 @@ class WishlistEntryTile extends StatelessWidget {
                 errorBuilder: (_, _, _) => Container(
                   width: 70,
                   height: 70,
-                  color: Colors.grey.shade300,
-                  child: const Icon(Icons.image_not_supported),
+                  color: colorScheme.surfaceContainerHighest,
+                  child: Icon(
+                    Icons.image_not_supported,
+                    color: colorScheme.onSurfaceVariant,
+                  ),
                 ),
               ),
             ),
@@ -63,10 +67,10 @@ class WishlistEntryTile extends StatelessWidget {
                   const SizedBox(height: 6),
                   Text(
                     '\$${product.price.toStringAsFixed(2)}',
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.w700,
-                      color: Colors.deepPurple,
+                      color: colorScheme.primary,
                     ),
                   ),
                   if (entry.hasPriceDrop ||
@@ -83,13 +87,15 @@ class WishlistEntryTile extends StatelessWidget {
                             text:
                                 'Price Drop · was '
                                 '\$${entry.wishlistedPrice.toStringAsFixed(2)}',
-                            color: Colors.green.shade700,
+                            color: colorScheme.tertiary,
+                            onColor: colorScheme.onTertiary,
                           ),
                         if (entry.isOutOfStock)
                           _Label(
                             key: Key('wishlist_out_of_stock_${product.id}'),
                             text: 'Out of Stock',
-                            color: Colors.redAccent,
+                            color: colorScheme.error,
+                            onColor: colorScheme.onError,
                           ),
                         if (isNoLongerAvailable)
                           _Label(
@@ -97,7 +103,8 @@ class WishlistEntryTile extends StatelessWidget {
                               'wishlist_no_longer_available_${product.id}',
                             ),
                             text: 'No Longer Available',
-                            color: Colors.grey.shade700,
+                            color: colorScheme.onSurfaceVariant,
+                            onColor: colorScheme.surface,
                           ),
                       ],
                     ),
@@ -117,7 +124,6 @@ class WishlistEntryTile extends StatelessWidget {
                   icon: const Icon(Icons.add_shopping_cart, size: 18),
                   label: const Text('Move to Cart'),
                   style: FilledButton.styleFrom(
-                    backgroundColor: Colors.deepPurple,
                     visualDensity: VisualDensity.compact,
                   ),
                 ),
@@ -127,7 +133,7 @@ class WishlistEntryTile extends StatelessWidget {
                   icon: const Icon(Icons.delete_outline, size: 20),
                   label: const Text('Remove'),
                   style: TextButton.styleFrom(
-                    foregroundColor: Colors.redAccent,
+                    foregroundColor: colorScheme.error,
                     visualDensity: VisualDensity.compact,
                   ),
                 ),
@@ -140,12 +146,18 @@ class WishlistEntryTile extends StatelessWidget {
   }
 }
 
-/// A small coloured label on a Wishlist entry.
+/// A small coloured label on a Wishlist entry: [onColor] text on [color].
 class _Label extends StatelessWidget {
   final String text;
   final Color color;
+  final Color onColor;
 
-  const _Label({super.key, required this.text, required this.color});
+  const _Label({
+    super.key,
+    required this.text,
+    required this.color,
+    required this.onColor,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -158,8 +170,8 @@ class _Label extends StatelessWidget {
         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
         child: Text(
           text,
-          style: const TextStyle(
-            color: Colors.white,
+          style: TextStyle(
+            color: onColor,
             fontSize: 11,
             fontWeight: FontWeight.w600,
           ),

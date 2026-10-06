@@ -14,6 +14,7 @@ class WishlistHeartButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
     return BlocBuilder<WishlistBloc, WishlistState>(
       buildWhen: (previous, current) =>
           previous.isWishlisted(product.id) != current.isWishlisted(product.id),
@@ -24,7 +25,9 @@ class WishlistHeartButton extends StatelessWidget {
           tooltip: isWishlisted ? 'Remove from Wishlist' : 'Add to Wishlist',
           icon: Icon(
             isWishlisted ? Icons.favorite : Icons.favorite_border,
-            color: isWishlisted ? Colors.redAccent : Colors.grey.shade600,
+            color: isWishlisted
+                ? colorScheme.error
+                : colorScheme.onSurfaceVariant,
           ),
           onPressed: () =>
               context.read<WishlistBloc>().add(WishlistToggled(product)),

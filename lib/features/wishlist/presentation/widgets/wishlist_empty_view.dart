@@ -9,17 +9,15 @@ class WishlistEmptyView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final textTheme = Theme.of(context).textTheme;
+    final theme = Theme.of(context);
+    final textTheme = theme.textTheme;
+    final colorScheme = theme.colorScheme;
     return Center(
       child: SingleChildScrollView(
         padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 32),
         child: Column(
           children: [
-            Icon(
-              Icons.favorite_border,
-              size: 64,
-              color: Colors.deepPurple.shade300,
-            ),
+            Icon(Icons.favorite_border, size: 64, color: colorScheme.primary),
             const SizedBox(height: 24),
             Text(
               'Your Wishlist is Empty',
@@ -33,7 +31,7 @@ class WishlistEmptyView extends StatelessWidget {
               'Tap the heart on a Product to save it for later.',
               textAlign: TextAlign.center,
               style: textTheme.bodyMedium?.copyWith(
-                color: Colors.grey.shade600,
+                color: colorScheme.onSurfaceVariant,
               ),
             ),
             const SizedBox(height: 28),
@@ -42,8 +40,8 @@ class WishlistEmptyView extends StatelessWidget {
               icon: const Icon(Icons.storefront_rounded, size: 20),
               label: const Text('Explore Products'),
               style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.deepPurple,
-                foregroundColor: Colors.white,
+                backgroundColor: colorScheme.primary,
+                foregroundColor: colorScheme.onPrimary,
               ),
             ),
           ],
