@@ -7,12 +7,18 @@ import '../../domain/entities/wishlist_entry.dart';
 class WishlistEntryTile extends StatelessWidget {
   final WishlistEntry entry;
   final bool isNoLongerAvailable;
+
+  /// Whether Move to Cart is enabled for this entry.
+  final bool canMoveToCart;
+  final VoidCallback onMoveToCart;
   final VoidCallback onRemove;
 
   const WishlistEntryTile({
     super.key,
     required this.entry,
     required this.isNoLongerAvailable,
+    required this.canMoveToCart,
+    required this.onMoveToCart,
     required this.onRemove,
   });
 
@@ -99,12 +105,33 @@ class WishlistEntryTile extends StatelessWidget {
                 ],
               ),
             ),
-            TextButton.icon(
-              key: Key('wishlist_remove_${product.id}'),
-              onPressed: onRemove,
-              icon: const Icon(Icons.delete_outline, size: 20),
-              label: const Text('Remove'),
-              style: TextButton.styleFrom(foregroundColor: Colors.redAccent),
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                FilledButton.icon(
+                  key: Key('wishlist_move_to_cart_${product.id}'),
+                  // Null disables the button: Out of Stock or No Longer
+                  // Available.
+                  onPressed: canMoveToCart ? onMoveToCart : null,
+                  icon: const Icon(Icons.add_shopping_cart, size: 18),
+                  label: const Text('Move to Cart'),
+                  style: FilledButton.styleFrom(
+                    backgroundColor: Colors.deepPurple,
+                    visualDensity: VisualDensity.compact,
+                  ),
+                ),
+                TextButton.icon(
+                  key: Key('wishlist_remove_${product.id}'),
+                  onPressed: onRemove,
+                  icon: const Icon(Icons.delete_outline, size: 20),
+                  label: const Text('Remove'),
+                  style: TextButton.styleFrom(
+                    foregroundColor: Colors.redAccent,
+                    visualDensity: VisualDensity.compact,
+                  ),
+                ),
+              ],
             ),
           ],
         ),
