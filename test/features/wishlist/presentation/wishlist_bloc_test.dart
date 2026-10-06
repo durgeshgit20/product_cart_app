@@ -169,9 +169,7 @@ void main() {
       act: (bloc) => bloc.add(const WishlistEntryRemoved('mock-3')),
       expect: () => [
         WishlistLoaded([savedWatch, savedHeadphones]),
-        WishlistLoaded([
-          savedHeadphones,
-        ], outcome: RemovedOutcome(savedWatch)),
+        WishlistLoaded([savedHeadphones], outcome: RemovedOutcome(savedWatch)),
       ],
       verify: (_) => expect(repository.saved, [savedHeadphones]),
     );

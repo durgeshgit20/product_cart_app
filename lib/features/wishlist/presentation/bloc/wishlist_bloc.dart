@@ -86,36 +86,26 @@ class WishlistBloc extends Bloc<WishlistEvent, WishlistState> {
     final current = state;
     if (current is! WishlistLoaded) return;
 
-    final List<WishlistEntry> entries;
     if (current.isWishlisted(product.id)) {
-      entries = [
-        for (final entry in current.entries)
-          if (entry.productId != product.id) entry,
-      ];
-    } else {
-      final entry = WishlistEntry(
-        product: product,
-        wishlistedPrice: product.price,
-        wishlistedAt: _clock(),
-      );
-      entries = [entry, ...current.entries];
+      await _save(current.without(product.id), emit);
+      return;
     }
-    await _save(current.withEntries(entries), emit);
+    final entry = WishlistEntry(
+      product: product,
+      wishlistedPrice: product.price,
+      wishlistedAt: _clock(),
+    );
+    await _save(current.withEntries([entry, ...current.entries]), emit);
   }
 
   Future<void> _onRemoved(String productId, Emitter<WishlistState> emit) async {
     final current = state;
     if (current is! WishlistLoaded) return;
-    final removed = current.entries
-        .where((entry) => entry.productId == productId)
-        .firstOrNull;
+    final removed = current.entryFor(productId);
     if (removed == null) return;
 
     final saved = await _save(
-      current.withEntries([
-        for (final entry in current.entries)
-          if (entry.productId != productId) entry,
-      ], outcome: RemovedOutcome(removed)),
+      current.without(productId, outcome: RemovedOutcome(removed)),
       emit,
     );
     if (saved) _lastRemoved = removed;
@@ -129,14 +119,9 @@ class WishlistBloc extends Bloc<WishlistEvent, WishlistState> {
     if (current is! WishlistLoaded || !current.canMoveToCart(productId)) {
       return;
     }
-    final moved = current.entries.firstWhere(
-      (entry) => entry.productId == productId,
-    );
+    final moved = current.entryFor(productId)!;
     await _save(
-      current.withEntries([
-        for (final entry in current.entries)
-          if (entry.productId != productId) entry,
-      ], outcome: MovedToCartOutcome(moved)),
+      current.without(productId, outcome: MovedToCartOutcome(moved)),
       emit,
     );
   }
@@ -167,16 +152,16 @@ class WishlistBloc extends Bloc<WishlistEvent, WishlistState> {
   ) async {
     final current = state;
     if (current is! WishlistLoaded) return;
-    final latest = {for (final product in products) product.id: product};
+    final catalogById = {for (final product in products) product.id: product};
     final entries = [
       for (final entry in current.entries)
-        switch (latest[entry.productId]) {
+        switch (catalogById[entry.productId]) {
           final product? => entry.withDetails(product),
           // No Longer Available: keep its last-known details.
           null => entry,
         },
     ];
-    final catalogIds = latest.keys.toSet();
+    final catalogIds = catalogById.keys.toSet();
     final next = WishlistLoaded(entries, catalogIds: catalogIds);
     if (listEquals(entries, current.entries)) {
       emit(next);

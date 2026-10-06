@@ -46,7 +46,18 @@ final class WishlistLoaded extends WishlistState {
         (entry) => entry.productId == productId && !entry.isOutOfStock,
       );
 
-  /// These [entries] with the same catalog, and no [outcome].
+  /// The entry for [productId], or null if it isn't Wishlisted.
+  WishlistEntry? entryFor(String productId) =>
+      entries.where((entry) => entry.productId == productId).firstOrNull;
+
+  /// This Wishlist without the entry for [productId].
+  WishlistLoaded without(String productId, {WishlistOutcome? outcome}) =>
+      withEntries([
+        for (final entry in entries)
+          if (entry.productId != productId) entry,
+      ], outcome: outcome);
+
+  /// These [entries] with the same catalog, and [outcome] (none by default).
   WishlistLoaded withEntries(
     List<WishlistEntry> entries, {
     WishlistOutcome? outcome,
