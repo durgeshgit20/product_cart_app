@@ -69,12 +69,12 @@ void main() {
       'an entry with missing fields': '[{"wishlistedPrice": 10}]',
       'an entry with wrong types':
           '[{"product": {"id": 1}, "wishlistedPrice": "cheap", '
-              '"wishlistedAt": "yesterday"}]',
+          '"wishlistedAt": "yesterday"}]',
       'an unparseable date':
           '[{"product": {"id": "mock-1", "name": "n", "description": "d", '
-              '"price": 1, "imageUrl": "u", "stockQuantity": 1, '
-              '"isOutOfStock": false}, "wishlistedPrice": 1, '
-              '"wishlistedAt": "not a date"}]',
+          '"price": 1, "imageUrl": "u", "stockQuantity": 1, '
+          '"isOutOfStock": false}, "wishlistedPrice": 1, '
+          '"wishlistedAt": "not a date"}]',
     };
 
     corruptValues.forEach((description, raw) {

@@ -55,7 +55,8 @@ void main() {
 
     blocTest<WishlistBloc, WishlistState>(
       'Wishlists a Product with its current price and the current time',
-      build: () => WishlistBloc(wishlistRepository: repository, clock: () => now),
+      build: () =>
+          WishlistBloc(wishlistRepository: repository, clock: () => now),
       act: (bloc) => bloc.add(const WishlistToggled(headphones)),
       expect: () => [
         const WishlistLoaded([]),
@@ -93,7 +94,8 @@ void main() {
     blocTest<WishlistBloc, WishlistState>(
       'sent while the saved Wishlist is still loading, applies after it loads',
       setUp: () => repository = FakeWishlistRepository([savedHeadphones]),
-      build: () => WishlistBloc(wishlistRepository: repository, clock: () => now),
+      build: () =>
+          WishlistBloc(wishlistRepository: repository, clock: () => now),
       act: (bloc) => bloc.add(const WishlistToggled(soldOutWatch)),
       expect: () => [
         WishlistLoaded([savedHeadphones]),
@@ -110,7 +112,8 @@ void main() {
 
     blocTest<WishlistBloc, WishlistState>(
       'Wishlists an Out of Stock Product',
-      build: () => WishlistBloc(wishlistRepository: repository, clock: () => now),
+      build: () =>
+          WishlistBloc(wishlistRepository: repository, clock: () => now),
       act: (bloc) => bloc.add(const WishlistToggled(soldOutWatch)),
       skip: 1,
       expect: () => [
@@ -122,6 +125,113 @@ void main() {
           ),
         ]),
       ],
+    );
+  });
+
+  group('Remove', () {
+    final savedWatch = WishlistEntry(
+      product: soldOutWatch,
+      wishlistedPrice: 99.0,
+      wishlistedAt: DateTime(2026, 10, 3),
+    );
+
+    blocTest<WishlistBloc, WishlistState>(
+      'takes the entry with that product id off the Wishlist and saves it',
+      setUp: () =>
+          repository = FakeWishlistRepository([savedWatch, savedHeadphones]),
+      build: () => WishlistBloc(wishlistRepository: repository),
+      act: (bloc) => bloc.add(const WishlistEntryRemoved('mock-3')),
+      expect: () => [
+        WishlistLoaded([savedWatch, savedHeadphones]),
+        WishlistLoaded([savedHeadphones]),
+      ],
+      verify: (_) => expect(repository.saved, [savedHeadphones]),
+    );
+  });
+
+  group('Undo', () {
+    const speaker = Product(
+      id: 'mock-4',
+      name: 'Speaker',
+      description: 'Bluetooth speaker',
+      price: 59.99,
+      imageUrl: 'https://example.com/4.png',
+      stockQuantity: 3,
+    );
+    final savedSpeaker = WishlistEntry(
+      product: speaker,
+      wishlistedPrice: 59.99,
+      wishlistedAt: DateTime(2026, 10, 5),
+    );
+    // Its baseline differs from the current price, so a restore that
+    // re-Wishlisted it from scratch would show up.
+    final savedWatch = WishlistEntry(
+      product: soldOutWatch,
+      wishlistedPrice: 99.0,
+      wishlistedAt: DateTime(2026, 10, 3),
+    );
+
+    blocTest<WishlistBloc, WishlistState>(
+      'puts the removed entry back exactly as it was, in its original '
+      'position, and saves it',
+      setUp: () => repository = FakeWishlistRepository([
+        savedSpeaker,
+        savedWatch,
+        savedHeadphones,
+      ]),
+      build: () => WishlistBloc(wishlistRepository: repository),
+      act: (bloc) => bloc
+        ..add(const WishlistEntryRemoved('mock-3'))
+        ..add(const WishlistRemovalUndone()),
+      skip: 2,
+      expect: () => [
+        WishlistLoaded([savedSpeaker, savedWatch, savedHeadphones]),
+      ],
+      verify: (_) =>
+          expect(repository.saved, [savedSpeaker, savedWatch, savedHeadphones]),
+    );
+
+    blocTest<WishlistBloc, WishlistState>(
+      'restores only the most recently removed entry',
+      setUp: () => repository = FakeWishlistRepository([
+        savedSpeaker,
+        savedWatch,
+        savedHeadphones,
+      ]),
+      build: () => WishlistBloc(wishlistRepository: repository),
+      act: (bloc) => bloc
+        ..add(const WishlistEntryRemoved('mock-4'))
+        ..add(const WishlistEntryRemoved('mock-1'))
+        ..add(const WishlistRemovalUndone())
+        ..add(const WishlistRemovalUndone()),
+      skip: 3,
+      expect: () => [
+        WishlistLoaded([savedWatch, savedHeadphones]),
+      ],
+    );
+
+    blocTest<WishlistBloc, WishlistState>(
+      'does not add a second entry if the Product was Wishlisted again '
+      'before Undo',
+      setUp: () => repository = FakeWishlistRepository([savedWatch]),
+      build: () => WishlistBloc(
+        wishlistRepository: repository,
+        clock: () => DateTime(2026, 10, 6),
+      ),
+      act: (bloc) => bloc
+        ..add(const WishlistEntryRemoved('mock-3'))
+        ..add(const WishlistToggled(soldOutWatch))
+        ..add(const WishlistRemovalUndone()),
+      verify: (bloc) => expect(
+        bloc.state,
+        WishlistLoaded([
+          WishlistEntry(
+            product: soldOutWatch,
+            wishlistedPrice: 89.5,
+            wishlistedAt: DateTime(2026, 10, 6),
+          ),
+        ]),
+      ),
     );
   });
 
@@ -163,7 +273,8 @@ void main() {
 
     blocTest<WishlistBloc, WishlistState>(
       'saves the Wishlist after a Product is Wishlisted',
-      build: () => WishlistBloc(wishlistRepository: repository, clock: () => now),
+      build: () =>
+          WishlistBloc(wishlistRepository: repository, clock: () => now),
       act: (bloc) => bloc.add(const WishlistToggled(soldOutWatch)),
       verify: (_) => expect(repository.saved, [
         WishlistEntry(
@@ -223,8 +334,9 @@ void main() {
 
     blocTest<WishlistBloc, WishlistState>(
       'starts with an empty Wishlist when loading fails',
-      setUp: () => repository = FakeWishlistRepository([savedHeadphones])
-        ..failWith = const StorageFailure('unreadable'),
+      setUp: () =>
+          repository = FakeWishlistRepository([savedHeadphones])
+            ..failWith = const StorageFailure('unreadable'),
       build: () => WishlistBloc(wishlistRepository: repository),
       expect: () => [const WishlistLoaded([])],
     );
