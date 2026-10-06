@@ -3,6 +3,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../bloc/wishlist_bloc.dart';
 import '../bloc/wishlist_state.dart';
+import '../pages/wishlist_screen.dart';
 
 /// The app-bar heart with a badge counting Wishlisted Products, hidden at
 /// zero.
@@ -24,8 +25,15 @@ class WishlistAppBarButton extends StatelessWidget {
               key: const Key('wishlist_app_bar_button'),
               tooltip: 'Wishlist',
               icon: const Icon(Icons.favorite),
-              // The Wishlist screen arrives in a later ticket.
-              onPressed: () {},
+              onPressed: () => Navigator.push(
+                context,
+                MaterialPageRoute<void>(
+                  builder: (_) => BlocProvider.value(
+                    value: context.read<WishlistBloc>(),
+                    child: const WishlistScreen(),
+                  ),
+                ),
+              ),
             ),
             if (count > 0)
               Positioned(

@@ -22,3 +22,20 @@ final class WishlistToggled extends WishlistEvent {
   @override
   List<Object?> get props => [product];
 }
+
+/// Takes the entry for [productId] off the Wishlist from the Wishlist screen,
+/// keeping it so that [WishlistRemovalUndone] can put it back.
+final class WishlistEntryRemoved extends WishlistEvent {
+  final String productId;
+
+  const WishlistEntryRemoved(this.productId);
+
+  @override
+  List<Object?> get props => [productId];
+}
+
+/// Puts back the entry most recently taken off by [WishlistEntryRemoved],
+/// with its original Price Drop baseline and Wishlisted time.
+final class WishlistRemovalUndone extends WishlistEvent {
+  const WishlistRemovalUndone();
+}

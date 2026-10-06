@@ -11,6 +11,9 @@ class WishlistBloc extends Bloc<WishlistEvent, WishlistState> {
   final IWishlistRepository _wishlistRepository;
   final DateTime Function() _clock;
 
+  /// The entry most recently taken off by Remove, kept for Undo.
+  WishlistEntry? _lastRemoved;
+
   WishlistBloc({
     required IWishlistRepository wishlistRepository,
     DateTime Function()? clock,
@@ -21,6 +24,8 @@ class WishlistBloc extends Bloc<WishlistEvent, WishlistState> {
       (event, emit) => switch (event) {
         WishlistStarted() => _onStarted(emit),
         WishlistToggled(:final product) => _onToggled(product, emit),
+        WishlistEntryRemoved(:final productId) => _onRemoved(productId, emit),
+        WishlistRemovalUndone() => _onRemovalUndone(emit),
       },
       transformer: sequential(),
     );
@@ -53,14 +58,49 @@ class WishlistBloc extends Bloc<WishlistEvent, WishlistState> {
     await _save(entries, emit);
   }
 
+  Future<void> _onRemoved(String productId, Emitter<WishlistState> emit) async {
+    final current = state;
+    if (current is! WishlistLoaded) return;
+    final removed = current.entries
+        .where((entry) => entry.productId == productId)
+        .firstOrNull;
+    if (removed == null) return;
+
+    final saved = await _save([
+      for (final entry in current.entries)
+        if (entry.productId != productId) entry,
+    ], emit);
+    if (saved) _lastRemoved = removed;
+  }
+
+  Future<void> _onRemovalUndone(Emitter<WishlistState> emit) async {
+    final current = state;
+    final removed = _lastRemoved;
+    if (current is! WishlistLoaded || removed == null) return;
+    _lastRemoved = null;
+    // Wishlisted again in the meantime: keep the newer entry.
+    if (current.isWishlisted(removed.productId)) return;
+
+    // Entries are newest first, so the removed one goes back before the
+    // first entry Wishlisted earlier than it: its original position.
+    final index = current.entries.indexWhere(
+      (entry) => entry.wishlistedAt.isBefore(removed.wishlistedAt),
+    );
+    final entries = List.of(current.entries)
+      ..insert(index == -1 ? current.entries.length : index, removed);
+    if (!await _save(entries, emit)) _lastRemoved = removed;
+  }
+
   /// Saves [entries] and, once they are safely stored, emits them.
   /// If saving fails the Wishlist stays as it was, so the screen never shows
-  /// a change that would be lost on restart.
-  Future<void> _save(
+  /// a change that would be lost on restart. Returns whether it was saved.
+  Future<bool> _save(
     List<WishlistEntry> entries,
     Emitter<WishlistState> emit,
   ) async {
     final result = await _wishlistRepository.saveEntries(entries).run();
-    if (result.isRight()) emit(WishlistLoaded(entries));
+    if (result.isLeft()) return false;
+    emit(WishlistLoaded(entries));
+    return true;
   }
 }
