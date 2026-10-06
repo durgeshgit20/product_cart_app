@@ -48,6 +48,7 @@ class WishlistScreen extends StatelessWidget {
               return WishlistEntryTile(
                 key: ValueKey(entry.productId),
                 entry: entry,
+                isNoLongerAvailable: state.isNoLongerAvailable(entry.productId),
                 onRemove: () =>
                     _remove(context, entry.productId, entry.product.name),
               );
