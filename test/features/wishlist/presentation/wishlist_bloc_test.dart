@@ -169,9 +169,26 @@ void main() {
       act: (bloc) => bloc.add(const WishlistEntryRemoved('mock-3')),
       expect: () => [
         WishlistLoaded([savedWatch, savedHeadphones]),
-        WishlistLoaded([savedHeadphones]),
+        WishlistLoaded([savedHeadphones], outcome: RemovedOutcome(savedWatch)),
       ],
       verify: (_) => expect(repository.saved, [savedHeadphones]),
+    );
+
+    blocTest<WishlistBloc, WishlistState>(
+      'reports no removal when saving fails, so no Undo is offered',
+      setUp: () => repository = FakeWishlistRepository([savedHeadphones]),
+      build: () => WishlistBloc(
+        wishlistRepository: repository,
+        productRepository: products,
+      ),
+      act: (bloc) async {
+        await bloc.stream.first;
+        repository.failWith = const StorageFailure('disk full');
+        bloc.add(const WishlistEntryRemoved('mock-1'));
+      },
+      expect: () => [
+        WishlistLoaded([savedHeadphones]),
+      ],
     );
   });
 
@@ -675,6 +692,28 @@ void main() {
     );
 
     blocTest<WishlistBloc, WishlistState>(
+      'is still marked when saving the refreshed details fails, which keep '
+      'their saved values',
+      setUp: () =>
+          repository = FakeWishlistRepository([savedWatch, savedHeadphones]),
+      build: () => WishlistBloc(
+        wishlistRepository: repository,
+        productRepository: products,
+      ),
+      act: (bloc) async {
+        await bloc.stream.first;
+        repository.failWith = const StorageFailure('disk full');
+        products.publish([soldOutWatch.copyWith(price: 79.0)]);
+        await bloc.stream.first;
+      },
+      verify: (bloc) {
+        expect(loaded(bloc).entries, [savedWatch, savedHeadphones]);
+        expect(loaded(bloc).isNoLongerAvailable('mock-1'), isTrue);
+        expect(loaded(bloc).isNoLongerAvailable('mock-3'), isFalse);
+      },
+    );
+
+    blocTest<WishlistBloc, WishlistState>(
       'marks every entry when the catalog is empty',
       setUp: () =>
           repository = FakeWishlistRepository([savedWatch, savedHeadphones]),
@@ -810,9 +849,29 @@ void main() {
       act: (bloc) => bloc.add(const WishlistMovedToCart('mock-1')),
       expect: () => [
         WishlistLoaded([savedWatch, savedHeadphones]),
-        WishlistLoaded([savedWatch]),
+        WishlistLoaded([
+          savedWatch,
+        ], outcome: MovedToCartOutcome(savedHeadphones)),
       ],
       verify: (_) => expect(repository.saved, [savedWatch]),
+    );
+
+    blocTest<WishlistBloc, WishlistState>(
+      'reports no move and keeps the entry when saving fails, so the screen '
+      'does not add it to the Cart',
+      setUp: () => repository = FakeWishlistRepository([savedHeadphones]),
+      build: () => WishlistBloc(
+        wishlistRepository: repository,
+        productRepository: products,
+      ),
+      act: (bloc) async {
+        await bloc.stream.first;
+        repository.failWith = const StorageFailure('disk full');
+        bloc.add(const WishlistMovedToCart('mock-1'));
+      },
+      expect: () => [
+        WishlistLoaded([savedHeadphones]),
+      ],
     );
 
     blocTest<WishlistBloc, WishlistState>(

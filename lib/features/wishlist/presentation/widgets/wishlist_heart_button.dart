@@ -12,24 +12,22 @@ class WishlistHeartButton extends StatelessWidget {
 
   const WishlistHeartButton({super.key, required this.product});
 
-  bool _isWishlisted(WishlistState state) => switch (state) {
-    WishlistLoading() => false,
-    WishlistLoaded() => state.isWishlisted(product.id),
-  };
-
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
     return BlocBuilder<WishlistBloc, WishlistState>(
       buildWhen: (previous, current) =>
-          _isWishlisted(previous) != _isWishlisted(current),
+          previous.isWishlisted(product.id) != current.isWishlisted(product.id),
       builder: (context, state) {
-        final isWishlisted = _isWishlisted(state);
+        final isWishlisted = state.isWishlisted(product.id);
         return IconButton(
           key: Key('wishlist_toggle_${product.id}'),
           tooltip: isWishlisted ? 'Remove from Wishlist' : 'Add to Wishlist',
           icon: Icon(
             isWishlisted ? Icons.favorite : Icons.favorite_border,
-            color: isWishlisted ? Colors.redAccent : Colors.grey.shade600,
+            color: isWishlisted
+                ? colorScheme.error
+                : colorScheme.onSurfaceVariant,
           ),
           onPressed: () =>
               context.read<WishlistBloc>().add(WishlistToggled(product)),

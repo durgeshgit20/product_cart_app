@@ -4,7 +4,6 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../cart/presentation/bloc/cart_bloc.dart';
 import '../../../cart/presentation/bloc/cart_event.dart';
 import '../../../cart/presentation/widgets/cart_app_bar_button.dart';
-import '../../domain/entities/wishlist_entry.dart';
 import '../bloc/wishlist_bloc.dart';
 import '../bloc/wishlist_event.dart';
 import '../bloc/wishlist_state.dart';
@@ -15,45 +14,49 @@ import '../widgets/wishlist_entry_tile.dart';
 class WishlistScreen extends StatelessWidget {
   const WishlistScreen({super.key});
 
-  /// Move to Cart: the blocs stay independent, so this screen coordinates
-  /// it by adding the Product to the Cart (which increases the quantity if
-  /// it's already there) and taking the entry off the Wishlist.
-  void _moveToCart(BuildContext context, WishlistEntry entry) {
-    final wishlist = context.read<WishlistBloc>();
-    final state = wishlist.state;
-    if (state is! WishlistLoaded || !state.canMoveToCart(entry.productId)) {
-      return;
+  /// Move to Cart and Remove: the blocs stay independent, so this screen
+  /// coordinates them. It acts only on an outcome the Wishlist reports once
+  /// the change is saved, so a move or removal that didn't happen never
+  /// reaches the Cart or offers Undo.
+  void _onOutcome(BuildContext context, WishlistOutcome outcome) {
+    switch (outcome) {
+      case MovedToCartOutcome(:final entry):
+        // Adds one, or increases the quantity if it's already in the Cart.
+        context.read<CartBloc>().add(AddToCartEvent(entry.product));
+      case RemovedOutcome(:final entry):
+        final bloc = context.read<WishlistBloc>();
+        ScaffoldMessenger.of(context)
+          ..hideCurrentSnackBar()
+          ..showSnackBar(
+            SnackBar(
+              content: Text('${entry.product.name} removed from your Wishlist'),
+              action: SnackBarAction(
+                label: 'Undo',
+                onPressed: () => bloc.add(const WishlistRemovalUndone()),
+              ),
+            ),
+          );
     }
-    context.read<CartBloc>().add(AddToCartEvent(entry.product));
-    wishlist.add(WishlistMovedToCart(entry.productId));
-  }
-
-  void _remove(BuildContext context, String productId, String name) {
-    final bloc = context.read<WishlistBloc>()
-      ..add(WishlistEntryRemoved(productId));
-    ScaffoldMessenger.of(context)
-      ..hideCurrentSnackBar()
-      ..showSnackBar(
-        SnackBar(
-          content: Text('$name removed from your Wishlist'),
-          action: SnackBarAction(
-            label: 'Undo',
-            onPressed: () => bloc.add(const WishlistRemovalUndone()),
-          ),
-        ),
-      );
   }
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
     return Scaffold(
       appBar: AppBar(
         title: const Text('Your Wishlist'),
-        backgroundColor: Colors.deepPurple,
-        foregroundColor: Colors.white,
+        backgroundColor: colorScheme.primary,
+        foregroundColor: colorScheme.onPrimary,
         actions: const [CartAppBarButton()],
       ),
-      body: BlocBuilder<WishlistBloc, WishlistState>(
+      body: BlocConsumer<WishlistBloc, WishlistState>(
+        listenWhen: (_, current) =>
+            current is WishlistLoaded && current.outcome != null,
+        listener: (context, state) {
+          if (state case WishlistLoaded(:final outcome?)) {
+            _onOutcome(context, outcome);
+          }
+        },
         builder: (context, state) => switch (state) {
           WishlistLoading() => const Center(child: CircularProgressIndicator()),
           WishlistLoaded(:final entries) when entries.isEmpty =>
@@ -68,9 +71,12 @@ class WishlistScreen extends StatelessWidget {
                 entry: entry,
                 isNoLongerAvailable: state.isNoLongerAvailable(entry.productId),
                 canMoveToCart: state.canMoveToCart(entry.productId),
-                onMoveToCart: () => _moveToCart(context, entry),
-                onRemove: () =>
-                    _remove(context, entry.productId, entry.product.name),
+                onMoveToCart: () => context.read<WishlistBloc>().add(
+                  WishlistMovedToCart(entry.productId),
+                ),
+                onRemove: () => context.read<WishlistBloc>().add(
+                  WishlistEntryRemoved(entry.productId),
+                ),
               );
             },
           ),
